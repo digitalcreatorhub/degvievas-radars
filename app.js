@@ -177,6 +177,7 @@ Object.assign(I18N.ru, {
   exportHint: "Таблица скопирована, вставьте её в Excel или Заметки",
   sharePrefix: "Дешевле всего",
   loading: "Загружаю цены…",
+  resetLoc: "Сбросить место", refreshed: "Обновлено, данные от", locWait: "Уточняю…",
 });
 Object.assign(I18N.en, {
   navPrices: "Prices", navMap: "Map", navJournal: "Log",
@@ -204,6 +205,7 @@ Object.assign(I18N.en, {
   exportHint: "Table copied, paste it into a spreadsheet or Notes",
   sharePrefix: "Cheapest",
   loading: "Loading prices…",
+  resetLoc: "Clear location", refreshed: "Updated, data from", locWait: "Refining…",
 });
 
 const FUEL_ORDER = ["95", "98", "diesel", "dplus", "lpg", "cng"];
@@ -247,6 +249,7 @@ const state = {
   open: null,
   loc: null,
   loading: false,
+  locating: false,
   installed: false,
   data: null, history: null, oil: null,
   baseline: store.get("snap", null),
@@ -530,7 +533,7 @@ function renderHeader() {
   const areas = d && state.city !== "all" ? d.areas.filter((a) => a.city === state.city) : [];
   const picker = state.view !== "journal" && cities.length ? `<div class="picker">
     <select data-act="city" aria-label="${t("city")}"><option value="all" ${state.city === "all" ? "selected" : ""}>${t("allCountry")} (${d.stations.length})</option>${cities.map((c) => `<option value="${esc(c.slug)}" ${c.slug === state.city ? "selected" : ""}>${esc(c.name)} (${c.count})</option>`).join("")}</select>
-    <button class="icon-btn ${state.loc ? "on" : ""}" data-act="near" aria-label="${t("nearMe")}" title="${t("nearMe")}">${ICON.near}${state.loc ? "" : `<span>${t("nearMe")}</span>`}</button>
+    <button class="icon-btn ${state.loc ? "on" : ""}" data-act="near" ${state.locating ? 'aria-busy="true"' : ""} aria-label="${t("nearMe")}" title="${t("nearMe")}">${ICON.near}${state.loc ? "" : `<span>${state.locating ? t("locWait") : t("nearMe")}</span>`}</button>
   </div>` : "";
   const chips = state.view !== "journal" && areas.length ? `<div class="chips" role="group">
     <button class="chip" data-act="area" data-v="" aria-pressed="${!state.area}">${t("allArea")}</button>
@@ -589,6 +592,7 @@ function renderFilters() {
   if (state.favs.length) chips.push(`<button class="chip" data-act="favonly" aria-pressed="${state.favOnly}">♥ ${t("favOnly")}<small>${state.favs.length}</small></button>`);
   if (hasDisc()) chips.push(`<button class="chip" data-act="discchip" aria-pressed="${state.useDisc}">% ${t("discChip")}</button>`);
   if (state.loc) {
+    chips.push(`<button class="chip" data-act="noloc">✕ ${t("resetLoc")}</button>`);
     chips.push(`<button class="chip" data-act="radius" data-v="" aria-pressed="${!state.radius}">${t("anyDist")}</button>`);
     for (const r of RADII) chips.push(`<button class="chip" data-act="radius" data-v="${r}" aria-pressed="${state.radius === r}">≤ ${r} ${t("km")}</button>`);
   }
@@ -1019,7 +1023,7 @@ async function getJson(name, bust) {
   if (!res.ok) throw new Error(name + " " + res.status);
   return res.json();
 }
-async function load(bust = false, anim = true) {
+async function load(bust = false, anim = true, keepBusy = false) {
   state.loading = true;
   render(false);
   const [data, history, oil] = await Promise.allSettled([getJson("prices", bust), getJson("history", bust), getJson("oil", bust)]);
@@ -1027,25 +1031,60 @@ async function load(bust = false, anim = true) {
   if (history.status === "fulfilled") state.history = history.value;
   if (oil.status === "fulfilled") state.oil = oil.value;
   if (state.data && state.city !== "all" && !state.data.cities.some((c) => c.slug === state.city)) state.city = "riga";
+  if (keepBusy) { render(false); await new Promise((r) => setTimeout(r, 700)); }
   state.loading = false;
   render(anim);
   saveSnap();
 }
 
 /* ---------- actions ---------- */
+let geoWatch = null, geoTimer = 0;
 function locate() {
   if (!navigator.geolocation) { toast(t("locFail")); return; }
-  navigator.geolocation.getCurrentPosition(
+  if (state.locating) return;
+  state.locating = true;
+  toast(t("locating"));
+  buzz(10);
+  render(false);
+  let got = false;
+  const finish = (ok) => {
+    if (geoWatch != null) navigator.geolocation.clearWatch(geoWatch);
+    geoWatch = null; clearTimeout(geoTimer);
+    state.locating = false;
+    if (!ok) toast(t("locFail"));
+    render(false);
+  };
+  geoTimer = setTimeout(() => finish(got), 9000);
+  // watchPosition gives the first (coarse) fix fast and then refines it; no cached position is reused.
+  geoWatch = navigator.geolocation.watchPosition(
     (pos) => {
-      state.loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      const first = !got;
+      got = true;
+      state.loc = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
       state.road = true;
-      buzz(12);
-      render();
-      if (state.view === "map" && mapObj) mapObj.flyTo(state.loc.lat, state.loc.lng, 13, 0.5, 700);
+      if (first) buzz(12);
+      if (pos.coords.accuracy <= 150) { finish(true); } else render(false);
+      if (first && state.view === "map" && mapObj) mapObj.flyTo(state.loc.lat, state.loc.lng, 13, 0.5, 700);
     },
-    () => toast(t("locFail")),
-    { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    () => { if (!got) finish(false); },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 9000 }
   );
+}
+let reloadOnUpdate = false;
+async function refreshNow() {
+  if (state.loading) return;
+  buzz(10);
+  reloadOnUpdate = true;
+  try { const reg = await navigator.serviceWorker?.getRegistration(); if (reg) reg.update(); } catch { /* ignore */ }
+  const t0 = Date.now();
+  await load(true, false, true);
+  setTimeout(() => { reloadOnUpdate = false; }, 4000);
+  const left = 800 - (Date.now() - t0);
+  if (left > 0) await new Promise((r) => setTimeout(r, left));
+  if (state.data) {
+    const hhmm = new Intl.DateTimeFormat("ru-RU", { timeZone: "Europe/Riga", hour: "2-digit", minute: "2-digit" }).format(new Date(state.data.generated_at));
+    toast(`${t("refreshed")} ${hhmm}`);
+  }
 }
 function setView(v) {
   if (state.view === v) return;
@@ -1108,7 +1147,7 @@ app.addEventListener("click", (e) => {
     case "closesheet": state.sheet = false; render(false); return;
     case "setlang": state.lang = v; store.set("lang", v); render(false); return;
     case "settheme": state.theme = v; store.set("theme", v); applyTheme(); render(false); return;
-    case "refresh": buzz(10); load(true); return;
+    case "refresh": refreshNow(); return;
     case "fuel": state.fuel = v; store.set("fuel", v); state.showAll = false; state.open = null; buzz(8); break;
     case "mode": state.mode = v; store.set("mode", v); break;
     case "area": state.area = v || null; state.showAll = false; mapFitKey = ""; break;
@@ -1116,6 +1155,7 @@ app.addEventListener("click", (e) => {
     case "more": state.showAll = !state.showAll; anim = false; break;
     case "row": state.open = state.open === v ? null : v; anim = false; break;
     case "near": locate(); return;
+    case "noloc": state.loc = null; state.road = false; state.radius = null; buzz(8); break;
     case "fav": toggleFav(v); return;
     case "favonly": state.favOnly = !state.favOnly; state.showAll = false; buzz(8); break;
     case "favgo": state.selected = v; state.view = "map"; state.open = null; rolled.clear(); render(true); window.scrollTo(0, 0);
@@ -1184,6 +1224,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (reloadOnUpdate) location.reload(); });
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 }
 applyTheme();
