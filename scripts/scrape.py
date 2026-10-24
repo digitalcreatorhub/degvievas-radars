@@ -48,6 +48,7 @@ EXACT_KINDS = {"station", "network", "user"}
 USER_MAX_AGE_H = 72  # driver-entered prices older than this are not "exact"
 HISTORY_DAYS = 180
 SLEEP_BETWEEN = 1.2
+CRAWL_BUDGET_S = 420  # stop crawling after this; unfinished cities keep their previous data
 
 
 # ---------------------------------------------------------------- fetching
@@ -267,6 +268,7 @@ def _clean_label(a) -> str:
 # ---------------------------------------------------------------- crawling
 
 def crawl(now: datetime, previous: dict | None) -> dict:
+    deadline = time.monotonic() + CRAWL_BUDGET_S
     home = parse_page(fetch(BASE + "/"), now)
     if len(home["stations"]) < 50:
         raise RuntimeError(f"home page parsed only {len(home['stations'])} stations")
@@ -292,8 +294,12 @@ def crawl(now: datetime, previous: dict | None) -> dict:
 
     absorb(home, "riga")
     for city in cities:
+        if time.monotonic() > deadline:
+            print(f"warn: crawl budget used up, skipping {city['slug']}", file=sys.stderr)
+            failed.append(city["slug"])
+            continue
         try:
-            page = parse_page(fetch(f"{BASE}/?city={city['slug']}"), now)
+            page = parse_page(fetch(f"{BASE}/?city={city['slug']}", retries=2, timeout=20), now)
             absorb(page, city["slug"])
         except RuntimeError as exc:
             print(f"warn: {city['slug']}: {exc}", file=sys.stderr)
@@ -302,8 +308,11 @@ def crawl(now: datetime, previous: dict | None) -> dict:
 
     areas = []
     for area in home["areas"]:
+        if time.monotonic() > deadline:
+            print("warn: crawl budget used up, skipping remaining areas", file=sys.stderr)
+            break
         try:
-            page = parse_page(fetch(f"{BASE}/?area={area['slug']}&city={area['city']}"), now)
+            page = parse_page(fetch(f"{BASE}/?area={area['slug']}&city={area['city']}", retries=2, timeout=20), now)
         except RuntimeError as exc:
             print(f"warn: area {area['slug']}: {exc}", file=sys.stderr)
             time.sleep(SLEEP_BETWEEN)

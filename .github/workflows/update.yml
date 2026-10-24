@@ -24,6 +24,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,6 +36,7 @@ jobs:
       - name: Collect prices
         id: scrape
         continue-on-error: true
+        timeout-minutes: 12
         run: python scripts/scrape.py
       - name: Commit data
         run: |
