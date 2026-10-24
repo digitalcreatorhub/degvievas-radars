@@ -6,6 +6,7 @@ const I18N = {
   ru: {
     title: "Degvielas Radars",
     refresh: "Обновить",
+    theme: "Сменить тему",
     updated: "Данные от",
     ago: "назад",
     staleData: "Данные устарели, обновление не прошло",
@@ -68,6 +69,7 @@ const I18N = {
   en: {
     title: "Degvielas Radars",
     refresh: "Refresh",
+    theme: "Switch theme",
     updated: "Data from",
     ago: "ago",
     staleData: "Data is stale, the last refresh failed",
@@ -140,6 +142,7 @@ const store = {
 };
 
 const state = {
+  theme: store.get("theme", "dark"),
   lang: store.get("lang", (navigator.language || "ru").startsWith("ru") ? "ru" : "en"),
   city: store.get("city", "riga"),
   area: null,
@@ -158,6 +161,11 @@ const state = {
 let installPrompt = null;
 
 const t = (k) => I18N[state.lang][k];
+function applyTheme() {
+  document.documentElement.dataset.theme = state.theme;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = state.theme === "light" ? "#edefec" : "#16181a";
+}
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 /* ---------- time (Latvia) ---------- */
@@ -269,6 +277,9 @@ function renderHeader() {
   return `
   <header class="top"><div class="top-row">
     <h1 class="brand">Degvielas <span>Radars</span></h1>
+    <button class="icon-btn" data-act="theme" aria-label="${t("theme")}" title="${t("theme")}">${state.theme === "light"
+      ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'
+      : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'}</button>
     <button class="icon-btn" data-act="lang" aria-label="Language">${state.lang === "ru" ? "EN" : "RU"}</button>
     <button class="icon-btn" data-act="refresh" aria-label="${t("refresh")}" ${state.loading ? 'aria-busy="true"' : ""}>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
@@ -509,6 +520,7 @@ app.addEventListener("click", (e) => {
   if (!el || el.tagName === "SELECT" || el.tagName === "INPUT") return;
   const v = el.dataset.v;
   switch (el.dataset.act) {
+    case "theme": state.theme = state.theme === "light" ? "dark" : "light"; store.set("theme", state.theme); applyTheme(); break;
     case "lang": state.lang = state.lang === "ru" ? "en" : "ru"; store.set("lang", state.lang); break;
     case "refresh": load(true); return;
     case "fuel": state.fuel = v; store.set("fuel", v); state.showAll = false; break;
@@ -544,4 +556,5 @@ document.addEventListener("visibilitychange", () => {
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 }
+applyTheme();
 load();

@@ -1,6 +1,6 @@
 /* Degvielas Radars. Asphalt at night, sodium-lamp amber, price-pylon digits. */
 :root {
-  color-scheme: dark light;
+  color-scheme: dark;
   --bg: #16181a;
   --panel: #1e2123;
   --line: #2f3336;
@@ -15,17 +15,16 @@
   --num: "Bahnschrift", "DIN Condensed", "sans-serif-condensed", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
   --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #edefec;
-    --panel: #ffffff;
-    --line: #d4d9d4;
-    --ink: #161a1c;
-    --mute: #5c6560;
-    --amber: #a85f00;
-    --good: #23783f;
-    --bad: #b8391f;
-  }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #edefec;
+  --panel: #ffffff;
+  --line: #d4d9d4;
+  --ink: #161a1c;
+  --mute: #5c6560;
+  --amber: #a85f00;
+  --good: #23783f;
+  --bad: #b8391f;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -143,8 +142,8 @@ h2 { font: 700 22px/1.1 var(--num); margin: 30px 0 4px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
 .who span { display: block; color: var(--mute); font-size: 14px; overflow-wrap: anywhere; }
 .who .note { font-size: 13px; }
-.who .note.warn { color: #c98a00; }
-@media (prefers-color-scheme: dark) { .who .note.warn { color: #e2b94a; } }
+.who .note.warn { color: #e2b94a; }
+:root[data-theme="light"] .who .note.warn { color: #c98a00; }
 .rp { text-align: right; }
 .rp b { display: block; font: 700 26px/1 var(--num); font-variant-numeric: tabular-nums; }
 .rp b sup { font-size: .55em; }
