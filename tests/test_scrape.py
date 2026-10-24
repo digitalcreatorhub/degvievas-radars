@@ -87,6 +87,36 @@ class ParseTests(unittest.TestCase):
         self.assertIsNone(scrape.parse_price("9.999 €"))
 
 
+class LiveMarkupTests(unittest.TestCase):
+    """Markup seen on letadegviela.lv on 2026-10-24: th labels, .ptip/.pct tooltips."""
+
+    @classmethod
+    def setUpClass(cls):
+        html = (ROOT / "tests" / "fixtures" / "live_2026-10-24.html").read_text(encoding="utf-8")
+        cls.page = scrape.parse_page(html, NOW)
+        cls.by_addr = {s["address"]: s for s in cls.page["stations"]}
+
+    def test_all_stations_found(self):
+        self.assertEqual(len(self.page["stations"]), 5)
+
+    def test_network_price_for_every_station(self):
+        st = self.by_addr["Augusta Deglava iela 51A, Rīga"]
+        self.assertEqual(st["fuels"]["95"], {"p": 1.884, "k": "network", "ch": "2026-10-24T12:01", "ago": 540})
+        self.assertEqual(st["fuels"]["diesel"]["p"], 1.994)
+
+    def test_station_price_and_chain_minimum(self):
+        own = self.by_addr["Krasta iela 47, Rīga"]["fuels"]["diesel"]
+        self.assertEqual((own["p"], own["k"], own["ago"]), (2.016, "station", 39))
+        other = self.by_addr["Other iela 1, Rīga"]["fuels"]["95"]
+        self.assertEqual((other["p"], other["k"]), (1.913, "min"))
+
+    def test_driver_price_and_single_station_brand(self):
+        lpg = self.by_addr["Brīvības gatve 386, Rīga"]["fuels"]["lpg"]
+        self.assertEqual((lpg["p"], lpg["k"], lpg["ch"]), (0.941, "user", "2026-10-07T14:34"))
+        solo = self.by_addr["Krasta iela 93"]["fuels"]["95"]
+        self.assertEqual((solo["p"], solo["k"]), (1.962, "user"))
+
+
 class StatsTests(unittest.TestCase):
     def test_exact_vs_estimate(self):
         page = scrape.parse_page(HTML, NOW)

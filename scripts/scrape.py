@@ -128,15 +128,30 @@ def classify(pc_text: str, title: str, classes: list[str]) -> str:
     return "min"  # unknown wording: treat as an estimate, never as exact
 
 
+def _tip(el) -> str:
+    """Tooltip text: a title attribute (older markup) or a nested .pct span (newer markup)."""
+    if el is None:
+        return ""
+    tip = el.select_one(".pct")
+    return el.get("title") or (tip.get_text(" ", strip=True) if tip else "")
+
+
+def _own_text(el) -> str:
+    """Visible text of an element without its tooltip and stale-warning children."""
+    if el is None:
+        return ""
+    return " ".join(t.strip() for t in el.find_all(string=True, recursive=False) if t.strip())
+
+
 def price_cell(price_el, pc_el, shared_pc, now: datetime) -> dict | None:
     if price_el is None:
         return None
-    price = parse_price(price_el.get_text())
+    price = parse_price(next(price_el.stripped_strings, ""))
     if price is None:
         return None
     pc = pc_el or shared_pc
-    pc_text = pc.get_text(" ", strip=True) if pc else ""
-    title = (pc.get("title") if pc else "") or price_el.get("title") or ""
+    pc_text = _own_text(pc)
+    title = _tip(pc) or _tip(price_el)
     classes = pc.get("class", []) if pc else []
     entry = {"p": price, "k": classify(pc_text, title, classes)}
     changed = parse_changed(title, now)
@@ -166,7 +181,7 @@ def parse_page(html: str, now: datetime | None = None) -> dict:
         chain_prices: dict[str, dict] = {}
         shared_pc = card.select_one(".npcap .pc")
         for tr in card.select("table.np tr[data-fuel]"):
-            label_el = tr.select_one("td.lb2")
+            label_el = tr.select_one(".lb2")
             fuel = FUEL_BY_LABEL.get(label_el.get_text(strip=True)) if label_el else None
             if not fuel:
                 continue
