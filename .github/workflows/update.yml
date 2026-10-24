@@ -55,7 +55,7 @@ jobs:
       - name: Build site
         run: |
           mkdir _site
-          cp -r index.html style.css app.js sw.js manifest.webmanifest icons data _site/
+          cp -r index.html style.css app.js map.js sw.js manifest.webmanifest icons data _site/
       - name: Build preview from the redesign branch (published at /next/)
         run: |
           if git ls-remote --exit-code --heads origin redesign >/dev/null 2>&1; then
