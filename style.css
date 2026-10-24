@@ -156,6 +156,14 @@ h2 { font: 700 22px/1.1 var(--num); margin: 30px 0 4px; }
 .rp b { display: block; font: 700 26px/1 var(--num); font-variant-numeric: tabular-nums; }
 .rp b sup { font-size: .55em; }
 .rp a { display: inline-block; margin-top: 6px; font-size: 13px; color: var(--amber); }
+.search { margin-top: 10px; }
+.search input { width: 100%; min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); }
+.more-prices { display: block; margin: 6px 0 0 auto; padding: 4px 0; background: none; border: 0; color: var(--mute); font-size: 13px; text-decoration: underline; }
+.detail { grid-column: 2 / -1; margin: 4px 0 2px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.detail > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 5px 0; font-size: 14px; }
+.detail > div + div { border-top: 1px solid var(--line); }
+.detail b { font: 700 18px/1 var(--num); font-variant-numeric: tabular-nums; }
+.detail a { color: var(--amber); }
 .more { width: 100%; margin-top: 12px; min-height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); }
 
 .bars { display: grid; gap: 10px; }

@@ -19,8 +19,8 @@ class ParseTests(unittest.TestCase):
         cls.by_addr = {s["address"]: s for s in cls.page["stations"]}
 
     def test_counts_and_meta(self):
-        self.assertEqual(len(self.page["stations"]), 6)
-        self.assertEqual(set(self.page["chains"]), {"viada", "neste", "straujupite"})
+        self.assertEqual(len(self.page["stations"]), 8)
+        self.assertEqual(set(self.page["chains"]), {"viada", "neste", "straujupite", "lpg"})
         self.assertEqual(self.page["source_updated"], "08:41")
         self.assertEqual(self.page["chains"]["viada"]["color"], "#E31E24")
 
@@ -64,6 +64,19 @@ class ParseTests(unittest.TestCase):
         self.assertEqual(st["fuels"]["lpg"]["p"], 0.941)
         self.assertNotIn("98", st["fuels"])
 
+    def test_brand_wide_driver_price_is_only_an_estimate(self):
+        no_price = self.by_addr["Ganību dambis 29a"]["fuels"]["lpg"]
+        self.assertEqual((no_price["p"], no_price["k"]), (0.93, "min"))
+        own = self.by_addr["Skanstes iela 48"]["fuels"]["lpg"]
+        self.assertEqual((own["p"], own["k"]), (0.905, "user"))
+
+    def test_lpg_driver_price_stays_exact_for_weeks(self):
+        own = self.by_addr["Skanstes iela 48"]["fuels"]["lpg"]
+        self.assertTrue(scrape.is_exact(own, NOW, "lpg"))
+        old = {**own, "ch": "2026-09-20T09:00"}
+        self.assertFalse(scrape.is_exact(old, NOW, "lpg"))
+        self.assertFalse(scrape.is_exact({**own, "ch": "2026-10-10T09:00"}, NOW, "95"))
+
     def test_year_rollover(self):
         jan = datetime(2027, 1, 2, 9, 0, tzinfo=scrape.RIGA_TZ)
         self.assertEqual(scrape.parse_changed("cena mainīta 31.12. 23:10", jan), "2026-12-31T23:10")
@@ -82,8 +95,10 @@ class StatsTests(unittest.TestCase):
         self.assertEqual(stats["95"]["min"], 1.847)
         self.assertEqual(stats["95"]["chain"], "viada")
         self.assertEqual(stats["95"]["n"], 3)  # Saharova + 2 Neste stations
-        # Old driver-entered LPG (07.10.) is not exact any more.
-        self.assertNotIn("lpg", stats)
+        # LPG: the 07.10. driver price at Neste is 17 days old (still exact for LPG),
+        # and the Skanstes iela 48 price is the cheapest.
+        self.assertEqual(stats["lpg"]["min"], 0.905)
+        self.assertEqual(stats["lpg"]["n"], 2)
 
     def test_report_text(self):
         page = scrape.parse_page(HTML, NOW)

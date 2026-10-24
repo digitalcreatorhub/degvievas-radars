@@ -13,7 +13,13 @@ const I18N = {
     city: "Город",
     allArea: "Весь город",
     exact: "Точные цены",
-    all: "С оценками",
+    all: "Все заправки",
+    allCountry: "Вся Латвия",
+    search: "Поиск по адресу или сети",
+    fewExact: "Мало точных цен для этого топлива.",
+    showAllStations: "Показать все заправки",
+    allPrices: "Все цены",
+    noMatch: "Ничего не найдено",
     cheapest: "Дешевле всего",
     network: "единая цена сети",
     station: "цена этой станции",
@@ -54,14 +60,14 @@ const I18N = {
     same: "без изменений",
     cents: "цента",
     emptyH: "Нет подходящих цен",
-    emptyT: "Для этого топлива здесь нет цен. Попробуйте режим «С оценками» или другой город.",
+    emptyT: "Для этого топлива здесь нет точных цен. Покажите все заправки или выберите другой город.",
     noDataH: "Данные ещё не собраны",
     noDataT: "Первый сбор цен запускается автоматически, обычно это занимает пару минут. Обновите страницу позже.",
     km: "км",
     today: "сегодня",
     yesterday: "вчера",
     changed: "изменена",
-    fuels: { "95": "95", "98": "98", diesel: "Дизель", dplus: "Дизель+", lpg: "Газ", cng: "CNG" },
+    fuels: { "95": "95", "98": "98", diesel: "Дизель", dplus: "Дизель+", lpg: "Автогаз", cng: "Метан (CNG)" },
     source: "Источник цен: letadegviela.lv. Цены сетей публикуются по сети целиком, на конкретной станции они могут отличаться. Перед заправкой сверьтесь с табло.",
     install: "Установить",
     installText: "Откроется как обычное приложение, прямо с экрана телефона",
@@ -80,7 +86,13 @@ const I18N = {
     city: "City",
     allArea: "Whole city",
     exact: "Exact prices",
-    all: "Include estimates",
+    all: "All stations",
+    allCountry: "All of Latvia",
+    search: "Search by address or chain",
+    fewExact: "Few exact prices for this fuel.",
+    showAllStations: "Show all stations",
+    allPrices: "All prices",
+    noMatch: "Nothing found",
     cheapest: "Cheapest",
     network: "chain-wide price",
     station: "this station's price",
@@ -121,14 +133,14 @@ const I18N = {
     same: "no change",
     cents: "cents",
     emptyH: "No matching prices",
-    emptyT: "There are no prices for this fuel here. Try “Include estimates” or another city.",
+    emptyT: "There are no exact prices for this fuel here. Show all stations or pick another city.",
     noDataH: "No data yet",
     noDataT: "The first price collection starts automatically and takes a couple of minutes. Reload the page later.",
     km: "km",
     today: "today",
     yesterday: "yesterday",
     changed: "changed",
-    fuels: { "95": "95", "98": "98", diesel: "Diesel", dplus: "Diesel+", lpg: "LPG", cng: "CNG" },
+    fuels: { "95": "95", "98": "98", diesel: "Diesel", dplus: "Diesel+", lpg: "Autogas (LPG)", cng: "CNG" },
     source: "Price source: letadegviela.lv. Chains publish one price for the whole network, so a given station can differ. Check the pump display before filling.",
     install: "Install",
     installText: "Opens like a regular app, straight from your home screen",
@@ -141,6 +153,7 @@ const I18N = {
 const FUEL_ORDER = ["95", "98", "diesel", "dplus", "lpg", "cng"];
 const EXACT_KINDS = new Set(["station", "network", "user"]);
 const USER_MAX_AGE_H = 72;
+const USER_MAX_AGE_BY_FUEL = { lpg: 21 * 24, cng: 21 * 24 };
 const ROAD_FACTOR = 1.3;
 const STALE_AFTER_MIN = 20 * 60;
 
@@ -161,6 +174,8 @@ const state = {
   consumption: store.get("consumption", 7),
   road: false,
   showAll: false,
+  q: "",
+  open: null,
   loc: null,
   locStatus: "",
   loading: false,
@@ -212,9 +227,9 @@ function dayWord(cell) {
 }
 
 /* ---------- prices ---------- */
-function isExact(cell, st) {
+function isExact(cell, st, fuel) {
   if (st.stale || !EXACT_KINDS.has(cell.k)) return false;
-  return cell.k !== "user" || ageHours(cell) <= USER_MAX_AGE_H;
+  return cell.k !== "user" || ageHours(cell) <= (USER_MAX_AGE_BY_FUEL[fuel] ?? USER_MAX_AGE_H);
 }
 function fmtPrice(p) { return p.toFixed(3); }
 function pylon(p) { const s = fmtPrice(p); return `${s.slice(0, 4)}<sup>${s.slice(4)}</sup>`; }
@@ -234,13 +249,15 @@ function rowsFor(opts = {}) {
   const d = state.data;
   if (!d) return [];
   const rows = [];
+  const query = state.q.trim().toLowerCase();
   for (const st of d.stations) {
-    if (st.city !== state.city) continue;
+    if (state.city !== "all" && st.city !== state.city) continue;
     if (state.area && !(st.areas || []).includes(state.area)) continue;
     if (!ignoreChain && state.chain && st.chain !== state.chain) continue;
     const cell = st.fuels[state.fuel];
     if (!cell) continue;
-    const exact = isExact(cell, st);
+    const exact = isExact(cell, st, state.fuel);
+    if (query && !(`${d.chains[st.chain].name} ${st.address}`.toLowerCase().includes(query))) continue;
     if (!ignoreMode && state.mode === "exact" && !exact) continue;
     const row = { st, cell, price: cell.p, exact, dist: null, total: null };
     if (state.loc) {
@@ -251,9 +268,11 @@ function rowsFor(opts = {}) {
     rows.push(row);
   }
   const useTotal = state.road && state.loc;
+  const outdated = (r) => (r.cell.k === "user" && !r.exact ? 1 : 0); // old driver prices go last
   rows.sort((a, b) =>
-    useTotal ? a.total - b.total
-      : a.price - b.price || (a.dist ?? 0) - (b.dist ?? 0) || (a.cell.ago ?? 9e9) - (b.cell.ago ?? 9e9));
+    outdated(a) - outdated(b) ||
+    (useTotal ? a.total - b.total
+      : a.price - b.price || (a.dist ?? 0) - (b.dist ?? 0) || (a.cell.ago ?? 9e9) - (b.cell.ago ?? 9e9)));
   return rows;
 }
 
@@ -285,7 +304,7 @@ function renderHeader() {
     if (ageMin > STALE_AFTER_MIN) meta += ` <span class="stale">${t("staleData")}</span>`;
   }
   const cities = d ? d.cities : [];
-  const areas = d ? d.areas.filter((a) => a.city === state.city) : [];
+  const areas = d && state.city !== "all" ? d.areas.filter((a) => a.city === state.city) : [];
   return `
   <header class="top"><div class="top-row">
     <h1 class="brand">Degvielas <span>Radars</span></h1>
@@ -299,7 +318,7 @@ function renderHeader() {
   </div>
   <p class="meta">${meta || "&nbsp;"}</p>
   ${cities.length ? `<div class="picker">
-    <select data-act="city" aria-label="${t("city")}">${cities.map((c) => `<option value="${esc(c.slug)}" ${c.slug === state.city ? "selected" : ""}>${esc(c.name)} (${c.count})</option>`).join("")}</select>
+    <select data-act="city" aria-label="${t("city")}"><option value="all" ${state.city === "all" ? "selected" : ""}>${t("allCountry")} (${d.stations.length})</option>${cities.map((c) => `<option value="${esc(c.slug)}" ${c.slug === state.city ? "selected" : ""}>${esc(c.name)} (${c.count})</option>`).join("")}</select>
     <button class="icon-btn" data-act="near" aria-label="${t("nearMe")}" title="${t("nearMe")}">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
       ${state.loc ? "" : `<span>${t("nearMe")}</span>`}
@@ -329,19 +348,22 @@ function renderInstall() {
 
 function renderFuelTabs() {
   const present = new Set();
-  if (state.data) for (const st of state.data.stations) if (st.city === state.city) for (const f in st.fuels) present.add(f);
+  if (state.data) for (const st of state.data.stations) if (state.city === "all" || st.city === state.city) for (const f in st.fuels) present.add(f);
   const fuels = FUEL_ORDER.filter((f) => present.has(f));
   if (fuels.length && !fuels.includes(state.fuel)) state.fuel = fuels[0];
   return `<div class="fuels" role="group">${fuels.map((f) => `<button class="fuel" data-act="fuel" data-v="${f}" aria-pressed="${state.fuel === f}">${t("fuels")[f]}</button>`).join("")}</div>
   <div class="seg" role="group">
     <button data-act="mode" data-v="exact" aria-pressed="${state.mode === "exact"}">${t("exact")}</button>
     <button data-act="mode" data-v="all" aria-pressed="${state.mode === "all"}">${t("all")}</button>
-  </div>`;
+  </div>
+  <div class="search"><input type="search" data-act="q" value="${esc(state.q)}" placeholder="${t("search")}" aria-label="${t("search")}" autocomplete="off"></div>`;
 }
 
 function renderPylon(rows) {
   if (!rows.length) {
-    return `<div class="empty"><b>${t("emptyH")}</b>${t("emptyT")}</div>`;
+    const body = state.q.trim() ? t("noMatch") : t("emptyT");
+    const more = state.mode === "exact" ? `<p><button class="chip" data-act="mode" data-v="all">${t("showAllStations")}</button></p>` : "";
+    return `<div class="empty"><b>${t("emptyH")}</b>${body}${more}</div>`;
   }
   const top = rows[0];
   const chain = state.data.chains[top.st.chain];
@@ -360,6 +382,9 @@ function renderPylon(rows) {
     if (est) {
       hint = `<p class="hint">${t("maybeCheaper")}: ${esc(state.data.chains[est.st.chain].name)} ${fmtPrice(est.price)} €. <button data-act="mode" data-v="all">${t("show")}</button></p>`;
     }
+  }
+  if (!hint && state.mode === "exact" && rows.length < 5) {
+    hint = `<p class="hint">${t("fewExact")} <button data-act="mode" data-v="all">${t("showAllStations")}</button></p>`;
   }
   const extra = top.dist != null ? `<br>${top.dist.toFixed(1)} ${t("km")}` : "";
   return `
@@ -416,13 +441,25 @@ function renderList(rows) {
       <div class="who"><b><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</b>
         <span>${esc(r.st.address)}</span>${note}
         <span class="note">${dist}${dayWord(r.cell)}</span></div>
-      <div class="rp"><b>${pylon(r.price)}</b><a href="${linkWaze(r.st)}" target="_blank" rel="noopener">${t("navTo")}</a></div>
+      <div class="rp"><b>${pylon(r.price)}</b><a href="${linkWaze(r.st)}" target="_blank" rel="noopener">${t("navTo")}</a>
+        <button class="more-prices" data-act="row" data-v="${esc(r.st.id)}" aria-expanded="${state.open === r.st.id}">${t("allPrices")}</button></div>
+      ${state.open === r.st.id ? renderDetail(r.st) : ""}
     </li>`;
   }).join("");
   return `
   <h2>${t("stationsH")}</h2><p class="sub">${rows.length} ${t("withPrice")}</p>
   <ol class="list" style="padding:0">${items}</ol>
   ${rows.length > 8 ? `<button class="more" data-act="more">${state.showAll ? t("showLess") : `${t("showAll")} ${rows.length}`}</button>` : ""}`;
+}
+
+function renderDetail(st) {
+  const lines = FUEL_ORDER.filter((f) => st.fuels[f]).map((f) => {
+    const c = st.fuels[f];
+    const exact = isExact(c, st, f);
+    const label = c.k === "min" ? t("minShort") : c.k === "user" ? (exact ? t("user") : t("userOld")) : t(c.k);
+    return `<div><span>${t("fuels")[f]}<small style="display:block;color:var(--mute)">${label}${c.ch ? ", " + dayWord(c) : ""}</small></span><b>${fmtPrice(c.p)} €</b></div>`;
+  }).join("");
+  return `<div class="detail">${lines}<div><span><a href="${linkWaze(st)}" target="_blank" rel="noopener">${t("waze")}</a>, <a href="${linkGmaps(st)}" target="_blank" rel="noopener">${t("gmaps")}</a></span></div></div>`;
 }
 
 function renderChains() {
@@ -509,7 +546,7 @@ function render() {
     <footer class="foot"><p>${t("source")}</p></footer>
   </div>`;
   window.scrollTo(0, keepScroll);
-  if (focused === "liters" || focused === "cons") {
+  if (focused === "liters" || focused === "cons" || focused === "q") {
     const el = app.querySelector(`[data-act="${focused}"]`);
     if (el) { el.focus(); el.setSelectionRange?.(el.value.length, el.value.length); }
   }
@@ -528,7 +565,7 @@ async function load(bust = false) {
   if (data.status === "fulfilled") state.data = data.value;
   if (history.status === "fulfilled") state.history = history.value;
   if (oil.status === "fulfilled") state.oil = oil.value;
-  if (state.data && !state.data.cities.some((c) => c.slug === state.city)) state.city = "riga";
+  if (state.data && state.city !== "all" && !state.data.cities.some((c) => c.slug === state.city)) state.city = "riga";
   state.loading = false;
   render();
 }
@@ -546,6 +583,7 @@ function locate() {
 app.addEventListener("click", (e) => {
   const el = e.target.closest("[data-act]");
   if (!el || el.tagName === "SELECT" || el.tagName === "INPUT") return;
+  if (el.dataset.act !== "row" && e.target.closest("a")) return;
   const v = el.dataset.v;
   switch (el.dataset.act) {
     case "theme": state.theme = state.theme === "light" ? "dark" : "light"; store.set("theme", state.theme); applyTheme(); break;
@@ -556,6 +594,7 @@ app.addEventListener("click", (e) => {
     case "area": state.area = v || null; state.showAll = false; break;
     case "chain": state.chain = state.chain === v ? null : v; state.showAll = false; break;
     case "more": state.showAll = !state.showAll; break;
+    case "row": state.open = state.open === v ? null : v; break;
     case "near": locate(); return;
     case "install": {
       const evt = installPrompt;
@@ -574,6 +613,7 @@ app.addEventListener("change", (e) => {
 });
 app.addEventListener("input", (e) => {
   const el = e.target;
+  if (el.dataset.act === "q") { state.q = el.value; state.showAll = true; render(); return; }
   const n = parseFloat(String(el.value).replace(",", "."));
   if (el.dataset.act === "liters" && n > 0) { state.liters = n; store.set("liters", n); render(); }
   if (el.dataset.act === "cons" && n > 0) { state.consumption = n; store.set("consumption", n); render(); }

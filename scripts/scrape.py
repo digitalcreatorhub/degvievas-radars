@@ -46,6 +46,8 @@ FUEL_ORDER = ["95", "98", "diesel", "dplus", "lpg", "cng"]
 # Kinds that tell what is actually posted at the pump.
 EXACT_KINDS = {"station", "network", "user"}
 USER_MAX_AGE_H = 72  # driver-entered prices older than this are not "exact"
+# LPG and CNG prices move slowly and drivers report them rarely.
+USER_MAX_AGE_BY_FUEL = {"lpg": 21 * 24, "cng": 21 * 24}
 HISTORY_DAYS = 180
 SLEEP_BETWEEN = 1.2
 CRAWL_BUDGET_S = 420  # stop crawling after this; unfinished cities keep their previous data
@@ -171,6 +173,15 @@ def parse_page(html: str, now: datetime | None = None) -> dict:
             cell = price_cell(tr.select_one("td.npv"), tr.select_one(".pc"), shared_pc, now)
             if cell:
                 chain_prices[fuel] = cell
+        multi = len(card.select("div.sr")) > 1
+        if multi:
+            # The brand table shows the lowest driver-entered price; it is
+            # not the price of each station, so stations get it as an estimate.
+            station_defaults = {
+                f: ({**c, "k": "min"} if c["k"] == "user" else c) for f, c in chain_prices.items()
+            }
+        else:
+            station_defaults = chain_prices
         chains[slug] = {
             "name": name_el.get_text(strip=True),
             "color": color_m.group(1) if color_m else "#888888",
@@ -204,8 +215,8 @@ def parse_page(html: str, now: datetime | None = None) -> dict:
             for fuel in sells:
                 if fuel in own:
                     fuels[fuel] = own[fuel]
-                elif fuel in chain_prices:
-                    fuels[fuel] = dict(chain_prices[fuel])
+                elif fuel in station_defaults:
+                    fuels[fuel] = dict(station_defaults[fuel])
             for fuel, cell in own.items():  # priced but not listed as sold
                 fuels.setdefault(fuel, cell)
             stations.append(
@@ -355,7 +366,7 @@ def crawl(now: datetime, previous: dict | None) -> dict:
 
 # ------------------------------------------------------------ statistics
 
-def is_exact(cell: dict, now: datetime) -> bool:
+def is_exact(cell: dict, now: datetime, fuel: str = "") -> bool:
     kind = cell.get("k")
     if kind not in EXACT_KINDS:
         return False
@@ -364,7 +375,7 @@ def is_exact(cell: dict, now: datetime) -> bool:
         if not ch:
             return False
         age = now - datetime.strptime(ch, "%Y-%m-%dT%H:%M").replace(tzinfo=RIGA_TZ)
-        return age <= timedelta(hours=USER_MAX_AGE_H)
+        return age <= timedelta(hours=USER_MAX_AGE_BY_FUEL.get(fuel, USER_MAX_AGE_H))
     return True
 
 
@@ -374,7 +385,7 @@ def scope_stats(stations: list[dict], now: datetime) -> dict:
         exact = []
         for st in stations:
             cell = st["fuels"].get(fuel)
-            if cell and is_exact(cell, now):
+            if cell and is_exact(cell, now, fuel):
                 exact.append((cell["p"], st))
         if not exact:
             continue
