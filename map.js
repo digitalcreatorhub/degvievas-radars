@@ -33,6 +33,7 @@
       this.lat = 56.95; this.lng = 24.1; this.z = 11;
       this.W = 0; this.H = 0;
       this.dark = true;
+      host.classList.add("dark");
       this.imgs = new Map();
       this.markers = new Map();
       this.order = [];
