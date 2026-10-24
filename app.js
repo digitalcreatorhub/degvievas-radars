@@ -63,7 +63,11 @@ const I18N = {
     changed: "изменена",
     fuels: { "95": "95", "98": "98", diesel: "Дизель", dplus: "Дизель+", lpg: "Газ", cng: "CNG" },
     source: "Источник цен: letadegviela.lv. Цены сетей публикуются по сети целиком, на конкретной станции они могут отличаться. Перед заправкой сверьтесь с табло.",
-    install: "Установить на экран",
+    install: "Установить",
+    installText: "Откроется как обычное приложение, прямо с экрана телефона",
+    installAndroid: "Откройте меню браузера (три точки) и выберите «Установить приложение»",
+    installIos: "Нажмите «Поделиться», затем «На экран Домой»",
+    later: "Позже",
     day: "дн.",
   },
   en: {
@@ -126,7 +130,11 @@ const I18N = {
     changed: "changed",
     fuels: { "95": "95", "98": "98", diesel: "Diesel", dplus: "Diesel+", lpg: "LPG", cng: "CNG" },
     source: "Price source: letadegviela.lv. Chains publish one price for the whole network, so a given station can differ. Check the pump display before filling.",
-    install: "Add to home screen",
+    install: "Install",
+    installText: "Opens like a regular app, straight from your home screen",
+    installAndroid: "Open the browser menu (three dots) and choose “Install app”",
+    installIos: "Tap Share, then “Add to Home Screen”",
+    later: "Later",
     day: "d",
   },
 };
@@ -156,9 +164,13 @@ const state = {
   loc: null,
   locStatus: "",
   loading: false,
+  installed: false,
   data: null, history: null, oil: null,
 };
 let installPrompt = null;
+const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+const INSTALL_SNOOZE_MS = 3 * 864e5;
 
 const t = (k) => I18N[state.lang][k];
 function applyTheme() {
@@ -298,6 +310,21 @@ function renderHeader() {
     ${areas.map((a) => `<button class="chip" data-act="area" data-v="${esc(a.slug)}" aria-pressed="${state.area === a.slug}">${esc(a.name)}<small>${a.count}</small></button>`).join("")}
   </div>` : ""}
   </header>`;
+}
+
+function renderInstall() {
+  if (isStandalone() || state.installed) return "";
+  const hiddenAt = store.get("installHidden", 0);
+  if (Date.now() - hiddenAt < INSTALL_SNOOZE_MS) return "";
+  const action = installPrompt
+    ? `<button class="btn-install" data-act="install">${t("install")}</button>`
+    : "";
+  const text = installPrompt ? t("installText") : isIos() ? t("installIos") : t("installAndroid");
+  return `<aside class="install" aria-label="${t("install")}">
+    <p>${text}</p>
+    ${action}
+    <button class="install-later" data-act="later">${t("later")}</button>
+  </aside>`;
 }
 
 function renderFuelTabs() {
@@ -476,9 +503,10 @@ function render() {
   const rows = rowsFor();
   app.innerHTML = `<div class="wrap">
     ${renderHeader()}
+    ${renderInstall()}
     <div class="left">${renderFuelTabs()}${renderPylon(rows)}${renderCalc(rows)}</div>
     <div class="right">${renderList(rows)}${renderChains()}${renderTrend()}${renderOil()}</div>
-    <footer class="foot"><p>${t("source")}</p>${installPrompt ? `<p><button data-act="install">${t("install")}</button></p>` : ""}</footer>
+    <footer class="foot"><p>${t("source")}</p></footer>
   </div>`;
   window.scrollTo(0, keepScroll);
   if (focused === "liters" || focused === "cons") {
@@ -529,7 +557,12 @@ app.addEventListener("click", (e) => {
     case "chain": state.chain = state.chain === v ? null : v; state.showAll = false; break;
     case "more": state.showAll = !state.showAll; break;
     case "near": locate(); return;
-    case "install": installPrompt?.prompt(); installPrompt = null; break;
+    case "install": {
+      const evt = installPrompt;
+      if (evt) { evt.prompt(); evt.userChoice.finally(() => { installPrompt = null; render(); }); }
+      return;
+    }
+    case "later": store.set("installHidden", Date.now()); break;
     default: return;
   }
   render();
@@ -546,6 +579,7 @@ app.addEventListener("input", (e) => {
   if (el.dataset.act === "cons" && n > 0) { state.consumption = n; store.set("consumption", n); render(); }
 });
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; if (state.data) render(); });
+window.addEventListener("appinstalled", () => { state.installed = true; installPrompt = null; render(); });
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && state.data) {
     const ageMin = (Date.now() - Date.parse(state.data.generated_at)) / 60000;
