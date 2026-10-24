@@ -5,6 +5,7 @@ on:
     # UTC. Riga is UTC+2 in winter, UTC+3 in summer.
     - cron: "30 4 * * *"
     - cron: "45 5 * * *"
+    - cron: "15 6 * * *"
     - cron: "30 9,13,17 * * *"
   workflow_dispatch:
   push:
