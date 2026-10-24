@@ -166,7 +166,7 @@ Object.assign(I18N.ru, {
   share: "Поделиться", copied: "Скопировано",
   mapFit: "Показать все", mapZoomIn: "Приблизить", mapZoomOut: "Отдалить", mapMe: "Где я",
   mapEmpty: "На карте нет станций с точной ценой. Переключитесь на «Все заправки».",
-  mapCheapest: "Самая дешёвая", mapHint: "Цвет цены: зелёный дешевле, красный дороже.",
+  mapCheapest: "Самая дешёвая", mapHint: "Цвет цены: зелёный дешевле, красный дороже. Пунктир и синий: оценка по минимуму сети.",
   jH: "Журнал заправок", jSub: "Записи хранятся только на этом телефоне.",
   jDate: "Дата", jLiters: "Литров", jPrice: "Цена, €/л", jOdo: "Пробег, км", jFull: "Полный бак",
   jAdd: "Записать заправку", jBest: "Лучшая цена сейчас", jEmpty: "Записей пока нет. Добавьте заправку с пробегом, и приложение посчитает реальный расход.",
@@ -194,7 +194,7 @@ Object.assign(I18N.en, {
   share: "Share", copied: "Copied",
   mapFit: "Show all", mapZoomIn: "Zoom in", mapZoomOut: "Zoom out", mapMe: "My location",
   mapEmpty: "No stations with an exact price on the map. Switch to “All stations”.",
-  mapCheapest: "Cheapest", mapHint: "Price colour: green is cheaper, red is dearer.",
+  mapCheapest: "Cheapest", mapHint: "Price colour: green is cheaper, red is dearer. Dashed blue: estimate from the chain minimum.",
   jH: "Fill-up log", jSub: "Entries are stored on this phone only.",
   jDate: "Date", jLiters: "Litres", jPrice: "Price, €/l", jOdo: "Odometer, km", jFull: "Full tank",
   jAdd: "Save fill-up", jBest: "Best price now", jEmpty: "No entries yet. Add a fill-up with the odometer reading and the app works out your real consumption.",
@@ -252,6 +252,7 @@ const state = {
   locating: false,
   installed: false,
   data: null, history: null, oil: null,
+  mapMode: store.get("mapmode", "all"),
   baseline: store.get("snap", null),
 };
 let installPrompt = null;
@@ -810,7 +811,11 @@ function renderPrices() {
 /* ---------- map view ---------- */
 let mapObj = null, mapHost = null, mapFitKey = "", lastPop = null;
 
-function mapRows() { return rowsFor({ scopeOnly: true }); }
+function mapRows() {
+  const rows = rowsFor({ scopeOnly: true, ignoreMode: state.mapMode === "all" });
+  // exact prices first (they decide the colours and the "cheapest" pin), estimates after them
+  return [...rows.filter((r) => r.exact), ...rows.filter((r) => !r.exact)];
+}
 
 function renderMapView() {
   const rows = mapRows();
@@ -824,7 +829,7 @@ function renderMapView() {
       const disc = discOf(st.chain);
       const fresh = lastPop !== state.selected;
       lastPop = state.selected;
-      const best = rows[0] && rows[0].st.id === st.id;
+      const best = rows[0] && rows[0].exact && rows[0].st.id === st.id;
       pop = `<div class="mpop ${fresh ? "in" : ""}">
         <div class="mp-head"><span class="mp-n"><i class="dot" style="background:${esc(chain.color)}"></i><b>${esc(chain.name)}</b>${best ? `<span class="tag good">${t("mapCheapest")}</span>` : ""}</span>
           ${heartBtn(st.id)}<button class="icon-btn sm" data-act="mclose" aria-label="${t("close")}">${ICON.close}</button></div>
@@ -843,8 +848,8 @@ function renderMapView() {
   } else lastPop = null;
   return `${fuelTabs()}
   <div class="seg slim" role="group">
-    <button data-act="mode" data-v="exact" aria-pressed="${state.mode === "exact"}">${t("exact")}</button>
-    <button data-act="mode" data-v="all" aria-pressed="${state.mode === "all"}">${t("all")}</button>
+    <button data-act="mapmode" data-v="exact" aria-pressed="${state.mapMode === "exact"}">${t("exact")}</button>
+    <button data-act="mapmode" data-v="all" aria-pressed="${state.mapMode === "all"}">${t("all")}</button>
   </div>
   <div class="mapbox">
     <div id="mapslot"></div>
@@ -884,8 +889,8 @@ function attachMap() {
     const hue = r.exact ? heatHue(r.price, lo, hi) : 220;
     const sel = state.selected === r.st.id;
     return {
-      id: r.st.id, lat: r.st.lat, lng: r.st.lng, prio: i, force: sel || i === 0,
-      cls: `${sel ? "sel " : ""}${i === 0 ? "best " : ""}${r.exact ? "" : "est"}`.trim(),
+      id: r.st.id, lat: r.st.lat, lng: r.st.lng, prio: r.exact ? i : 1000 + i, force: sel || (i === 0 && r.exact),
+      cls: `${sel ? "sel " : ""}${i === 0 && r.exact ? "best " : ""}${r.exact ? "" : "est"}`.trim(),
       html: `<span class="pin" style="--h:${hue};--c:${esc(chain.color)}"><i class="pdot"></i><b>${fmtPrice(r.price)}</b></span>`,
       dotHtml: `<span class="pin mini" style="--h:${hue};--c:${esc(chain.color)}"></span>`,
     };
@@ -1149,6 +1154,7 @@ app.addEventListener("click", (e) => {
     case "settheme": state.theme = v; store.set("theme", v); applyTheme(); render(false); return;
     case "refresh": refreshNow(); return;
     case "fuel": state.fuel = v; store.set("fuel", v); state.showAll = false; state.open = null; buzz(8); break;
+    case "mapmode": state.mapMode = v; store.set("mapmode", v); anim = false; break;
     case "mode": state.mode = v; store.set("mode", v); break;
     case "area": state.area = v || null; state.showAll = false; mapFitKey = ""; break;
     case "chain": state.chain = state.chain === v ? null : v; state.showAll = false; mapFitKey = ""; break;
