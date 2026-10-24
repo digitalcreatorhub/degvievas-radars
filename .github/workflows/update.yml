@@ -9,7 +9,7 @@ on:
     - cron: "30 9,13,17 * * *"
   workflow_dispatch:
   push:
-    branches: [main, redesign]
+    branches: [main]
     paths-ignore:
       - "data/**"
       - "README.md"
