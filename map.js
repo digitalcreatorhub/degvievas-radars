@@ -1,9 +1,9 @@
 "use strict";
-/* MiniMap: a tiny slippy map. Web Mercator raster tiles (CARTO, OpenStreetMap data)
+/* MiniMap: a tiny slippy map. Web Mercator raster tiles (openstreetmap.org)
    plus HTML markers. Pan, inertia, wheel zoom, pinch zoom, double tap, animated flights.
    No dependencies. Exposes window.MiniMap. */
 (function () {
-  const TILE = 256, MINZ = 5, MAXZ = 18, SUBS = ["a", "b", "c", "d"];
+  const TILE = 256, MINZ = 5, MAXZ = 18;
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const mercX = (lng, z) => ((lng + 180) / 360) * TILE * 2 ** z;
   const mercY = (lat, z) => {
@@ -28,7 +28,7 @@
       this.marks.className = "mm-marks";
       const attr = document.createElement("div");
       attr.className = "mm-attr";
-      attr.textContent = "© OpenStreetMap contributors © CARTO";
+      attr.textContent = "© OpenStreetMap contributors";
       host.append(this.tiles, this.marks, attr);
       this.lat = 56.95; this.lng = 24.1; this.z = 11;
       this.W = 0; this.H = 0;
@@ -56,9 +56,7 @@
     setDark(dark) {
       if (this.dark === dark) return;
       this.dark = dark;
-      this.host.classList.toggle("dark", dark);
-      for (const img of this.imgs.values()) img.remove();
-      this.imgs.clear();
+      this.host.classList.toggle("dark", dark); // dark mode is a CSS filter on the same tiles
       this.draw();
     }
 
@@ -81,7 +79,6 @@
       const hw = W / 2 / sc, hh = H / 2 / sc, n = 2 ** tz;
       const x0 = Math.floor((cx - hw) / TILE), x1 = Math.floor((cx + hw) / TILE);
       const y0 = Math.max(0, Math.floor((cy - hh) / TILE)), y1 = Math.min(n - 1, Math.floor((cy + hh) / TILE));
-      const retina = (window.devicePixelRatio || 1) > 1.5 ? "@2x" : "";
       const need = new Set();
       for (let x = x0; x <= x1; x++) {
         for (let y = y0; y <= y1; y++) {
@@ -94,7 +91,7 @@
           img._tz = tz; img._x = x; img._y = y;
           img.onload = () => img.classList.add("ok");
           img.onerror = () => { img.remove(); this.imgs.delete(key); };
-          img.src = `https://${SUBS[(wx + y) & 3]}.basemaps.cartocdn.com/${this.dark ? "dark_all" : "light_all"}/${tz}/${wx}/${y}${retina}.png`;
+          img.src = `https://tile.openstreetmap.org/${tz}/${wx}/${y}.png`;
           this.tiles.appendChild(img);
           this.imgs.set(key, img);
         }
