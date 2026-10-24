@@ -111,6 +111,24 @@ class StatsTests(unittest.TestCase):
         report = scrape.build_report(page, history, NOW)
         self.assertEqual(report["fuels"]["95"]["price"], 1.847)
         self.assertIn("1.847", report["text_ru"])
+        self.assertEqual(report["alerts"], [])  # no history yet, so nothing to compare with
+
+    def test_alerts_on_drop_and_low(self):
+        page = scrape.parse_page(HTML, NOW)
+        page.update({"generated_at": "2026-10-24T06:00:00Z", "cities": [{"slug": "riga"}]})
+        for st in page["stations"]:
+            st["city"] = "riga"
+        for chain in page["chains"].values():
+            chain.pop("prices", None)
+        history = scrape.update_history(ROOT / "tests" / "_none.json", page, NOW)
+        today = NOW.strftime("%Y-%m-%d")
+        cur = history["days"][today]["riga"]["95"]
+        for i, (day, add) in enumerate([("2026-10-21", .05), ("2026-10-22", .04), ("2026-10-23", .03)]):
+            history["days"][day] = {"riga": {"95": {**cur, "min": round(cur["min"] + add, 3), "avg": cur["avg"]}}}
+        report = scrape.build_report(page, history, NOW)
+        self.assertTrue(report["fuels"]["95"]["low30"])
+        self.assertIn("95", report["alerts"])
+        self.assertIn("минимум за 30 дней", report["text_ru"])
 
 
 if __name__ == "__main__":

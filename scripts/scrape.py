@@ -450,7 +450,14 @@ def build_report(prices: dict, history: dict, now: datetime, scope: str = "riga"
             continue
         st = by_id[entry["station"]]
         prev_min = prev.get(fuel, {}).get("min")
+        past = [
+            history["days"][d].get(scope, {}).get(fuel, {}).get("min")
+            for d in days[-30:]
+        ]
+        past = [p for p in past if p is not None]
+        low30 = len(past) >= 3 and entry["min"] <= min(past) + 0.0004
         fuels[fuel] = {
+            "low30": low30,
             "price": entry["min"],
             "avg": entry["avg"],
             "chain": prices["chains"][st["chain"]]["name"],
@@ -464,12 +471,17 @@ def build_report(prices: dict, history: dict, now: datetime, scope: str = "riga"
                 for c, p in list(entry.get("chains", {}).items())[:4]
             ],
         }
+    alerts = [
+        fuel for fuel, f in fuels.items()
+        if f["low30"] or (f["delta"] is not None and f["delta"] <= -0.02)
+    ]
     return {
-        "schema": 1,
+        "schema": 2,
         "date": today,
         "scope": scope,
         "generated_at": prices["generated_at"],
         "fuels": fuels,
+        "alerts": alerts,
         "text_ru": report_text(fuels),
     }
 
@@ -490,7 +502,18 @@ def report_text(fuels: dict) -> str:
         lines.append(
             f"{FUEL_NAME_RU[fuel]}: {f['price']:.3f} € — {f['chain']}, {f['address']}{delta}"
         )
-    return "Рига, самое дешёвое сегодня\n" + "\n".join(lines) if lines else ""
+    flags = []
+    for fuel in ("95", "diesel", "98", "lpg"):
+        f = fuels.get(fuel)
+        if not f:
+            continue
+        if f.get("low30"):
+            flags.append(f"★ {FUEL_NAME_RU[fuel]}: минимум за 30 дней")
+        elif f["delta"] is not None and f["delta"] <= -0.02:
+            flags.append(f"↓ {FUEL_NAME_RU[fuel]}: подешевело на {abs(f['delta']) * 100:.1f} цента")
+    if not lines:
+        return ""
+    return "Рига, самое дешёвое сегодня\n" + "\n".join(lines + flags)
 
 
 # -------------------------------------------------------------------- oil

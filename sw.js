@@ -1,8 +1,10 @@
 /* Degvielas Radars service worker: app shell offline, data network-first. */
-const VERSION = "v1";
-const SHELL = `dr-shell-${VERSION}`;
-const DATA = `dr-data-${VERSION}`;
-const FILES = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png"];
+const VERSION = "v2";
+// The preview (/next/) and the main site share one origin, so each keeps its own cache names.
+const PREFIX = self.location.pathname.includes("/next/") ? "drn" : "dr";
+const SHELL = `${PREFIX}-shell-${VERSION}`;
+const DATA = `${PREFIX}-data-${VERSION}`;
+const FILES = ["./", "index.html", "style.css", "app.js", "map.js", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
@@ -10,7 +12,7 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => ![SHELL, DATA].includes(k)).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith(PREFIX + "-") && ![SHELL, DATA].includes(k)).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

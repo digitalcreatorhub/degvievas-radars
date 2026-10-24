@@ -150,12 +150,70 @@ const I18N = {
     day: "d",
   },
 };
+
+Object.assign(I18N.ru, {
+  navPrices: "Цены", navMap: "Карта", navJournal: "Журнал",
+  settings: "Настройки", language: "Язык", themeLabel: "Тема", dark: "Тёмная", light: "Светлая",
+  haptics: "Вибрация при нажатиях", close: "Закрыть",
+  discH: "Мои скидки", discHelp: "Скидка по карте лояльности, цент на литр. Цены в списке и на карте станут уже со скидкой.",
+  discApply: "Учитывать скидки", discChip: "Со скидками", withDisc: "со скидкой",
+  preview: "Тестовая версия",
+  boardH: "Сейчас дешевле всего", otherFuels: "Другое топливо",
+  sinceVisit: "с прошлого визита", low30: "Минимум за 30 дней", newPrice: "цена изменилась",
+  favs: "Мои заправки", favOnly: "Избранные", addFav: "В избранное", removeFav: "Убрать из избранного",
+  favAdded: "Добавлено в избранное", favRemoved: "Убрано из избранного", favNone: "В избранном ничего нет для этого топлива.",
+  radius: "Радиус", anyDist: "Любой", noGeo: "Включите «Рядом со мной», чтобы искать по радиусу.",
+  share: "Поделиться", copied: "Скопировано",
+  mapFit: "Показать все", mapZoomIn: "Приблизить", mapZoomOut: "Отдалить", mapMe: "Где я",
+  mapEmpty: "На карте нет станций с точной ценой. Переключитесь на «Все заправки».",
+  mapCheapest: "Самая дешёвая", mapHint: "Цвет цены: зелёный дешевле, красный дороже.",
+  jH: "Журнал заправок", jSub: "Записи хранятся только на этом телефоне.",
+  jDate: "Дата", jLiters: "Литров", jPrice: "Цена, €/л", jOdo: "Пробег, км", jFull: "Полный бак",
+  jAdd: "Записать заправку", jBest: "Лучшая цена сейчас", jEmpty: "Записей пока нет. Добавьте заправку с пробегом, и приложение посчитает реальный расход.",
+  jCons: "Расход", jAvgPrice: "Средняя цена", jMonth: "За этот месяц", jPer100: "100 км стоят",
+  jUse: "Взять расход в калькулятор", jCsv: "Скопировать как CSV", jDel: "Удалить", jTotal: "Всего",
+  jBad: "Укажите литры и цену", jSaved: "Записано", jUsed: "Расход перенесён в калькулятор",
+  consUnit: "л/100 км", moUnit: "€",
+  exportHint: "Таблица скопирована, вставьте её в Excel или Заметки",
+  sharePrefix: "Дешевле всего",
+  loading: "Загружаю цены…",
+});
+Object.assign(I18N.en, {
+  navPrices: "Prices", navMap: "Map", navJournal: "Log",
+  settings: "Settings", language: "Language", themeLabel: "Theme", dark: "Dark", light: "Light",
+  haptics: "Vibrate on taps", close: "Close",
+  discH: "My discounts", discHelp: "Loyalty-card discount in cents per litre. Prices in the list and on the map will already include it.",
+  discApply: "Apply discounts", discChip: "With discounts", withDisc: "with discount",
+  preview: "Preview build",
+  boardH: "Cheapest right now", otherFuels: "Other fuels",
+  sinceVisit: "since your last visit", low30: "30-day low", newPrice: "price changed",
+  favs: "My stations", favOnly: "Favourites", addFav: "Add to favourites", removeFav: "Remove from favourites",
+  favAdded: "Added to favourites", favRemoved: "Removed from favourites", favNone: "None of your favourites has this fuel.",
+  radius: "Radius", anyDist: "Any", noGeo: "Turn on “Near me” to search by radius.",
+  share: "Share", copied: "Copied",
+  mapFit: "Show all", mapZoomIn: "Zoom in", mapZoomOut: "Zoom out", mapMe: "My location",
+  mapEmpty: "No stations with an exact price on the map. Switch to “All stations”.",
+  mapCheapest: "Cheapest", mapHint: "Price colour: green is cheaper, red is dearer.",
+  jH: "Fill-up log", jSub: "Entries are stored on this phone only.",
+  jDate: "Date", jLiters: "Litres", jPrice: "Price, €/l", jOdo: "Odometer, km", jFull: "Full tank",
+  jAdd: "Save fill-up", jBest: "Best price now", jEmpty: "No entries yet. Add a fill-up with the odometer reading and the app works out your real consumption.",
+  jCons: "Consumption", jAvgPrice: "Average price", jMonth: "This month", jPer100: "100 km cost",
+  jUse: "Use in the calculator", jCsv: "Copy as CSV", jDel: "Delete", jTotal: "Total",
+  jBad: "Enter litres and price", jSaved: "Saved", jUsed: "Consumption copied to the calculator",
+  consUnit: "l/100 km", moUnit: "€",
+  exportHint: "Table copied, paste it into a spreadsheet or Notes",
+  sharePrefix: "Cheapest",
+  loading: "Loading prices…",
+});
+
 const FUEL_ORDER = ["95", "98", "diesel", "dplus", "lpg", "cng"];
+const BOARD_FUELS = ["95", "98", "diesel"];
 const EXACT_KINDS = new Set(["station", "network", "user"]);
 const USER_MAX_AGE_H = 72;
 const USER_MAX_AGE_BY_FUEL = { lpg: 21 * 24, cng: 21 * 24 };
 const ROAD_FACTOR = 1.3;
 const STALE_AFTER_MIN = 20 * 60;
+const RADII = [2, 5, 10, 25];
 
 const store = {
   get(k, d) { try { const v = localStorage.getItem("dr." + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -163,6 +221,7 @@ const store = {
 };
 
 const state = {
+  view: "prices",
   theme: store.get("theme", "dark"),
   lang: store.get("lang", (navigator.language || "ru").startsWith("ru") ? "ru" : "en"),
   city: store.get("city", "riga"),
@@ -173,14 +232,24 @@ const state = {
   liters: store.get("liters", 50),
   consumption: store.get("consumption", 7),
   road: false,
+  radius: null,
+  favOnly: false,
+  favs: store.get("favs", []),
+  disc: store.get("disc", {}),
+  useDisc: store.get("useDisc", true),
+  haptics: store.get("haptics", true),
+  journal: store.get("journal", []),
+  jf: { date: "", l: "", ppl: "", odo: "", full: true },
+  sheet: false,
+  selected: null,
   showAll: false,
   q: "",
   open: null,
   loc: null,
-  locStatus: "",
   loading: false,
   installed: false,
   data: null, history: null, oil: null,
+  baseline: store.get("snap", null),
 };
 let installPrompt = null;
 const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
@@ -194,6 +263,46 @@ function applyTheme() {
   if (meta) meta.content = state.theme === "light" ? "#edefec" : "#16181a";
 }
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const buzz = (ms = 8) => { if (state.haptics && navigator.vibrate) { try { navigator.vibrate(ms); } catch { /* ignore */ } } };
+
+/* ---------- toast ---------- */
+const toastEl = document.createElement("div");
+toastEl.className = "toast";
+toastEl.setAttribute("role", "status");
+document.body.appendChild(toastEl);
+let toastTimer = 0;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
+}
+
+/* ---------- icons ---------- */
+const svg = (inner, size = 20, extra = "") => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${inner}</svg>`;
+const ICON = {
+  gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+  refresh: svg('<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>'),
+  heart: svg('<path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21z"/>', 20, 'class="hs"'),
+  share: svg('<path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/>'),
+  near: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/>'),
+  close: svg('<path d="M18 6L6 18M6 6l12 12"/>'),
+  plus: svg('<path d="M12 5v14M5 12h14"/>'),
+  minus: svg('<path d="M5 12h14"/>'),
+  fit: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+  nav: svg('<path d="M3 11l18-8-8 18-2-8-8-2z"/>', 16),
+  prices: svg('<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/>', 22),
+  map: svg('<path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>', 22),
+  journal: svg('<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22.5z"/><path d="M4 4.5v18"/><path d="M9 7h7M9 11h7"/>', 22),
+  trash: svg('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>', 18),
+  radar: `<svg class="radar" width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
+    <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5"/>
+    <circle cx="16" cy="16" r="8" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="1.5"/>
+    <g class="sweep"><path d="M16 16L16 2A14 14 0 0 1 28.1 9z" fill="url(#rg)"/><line x1="16" y1="16" x2="16" y2="2" stroke="var(--amber)" stroke-width="2" stroke-linecap="round"/></g>
+    <circle class="blip" cx="22" cy="21" r="2" fill="var(--amber)"/>
+    <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f5a524" stop-opacity=".0"/><stop offset="1" stop-color="#f5a524" stop-opacity=".45"/></linearGradient></defs></svg>`,
+};
 
 /* ---------- time (Latvia) ---------- */
 function rigaParts(date) {
@@ -226,13 +335,43 @@ function dayWord(cell) {
   return `${t("changed")} ${when} ${tm}`;
 }
 
+/* ---------- animated digits ---------- */
+const rolled = new Map();      // key -> string shown last time
+const rollNext = new Map();
+const DIGITS = "0123456789".replace(/./g, "<i>$&</i>");
+function roll(str, key) {
+  const prev = rolled.get(key) || "";
+  rollNext.set(key, str);
+  let out = "";
+  [...str].forEach((ch, i) => {
+    if (/\d/.test(ch)) {
+      const pc = prev[prev.length - (str.length - i)];
+      const from = pc && /\d/.test(pc) ? +pc : 0;
+      out += `<span class="dg" style="--k:${i}"><span class="col" style="transform:translateY(${-from}em)" data-to="${ch}">${DIGITS}</span></span>`;
+    } else out += `<span class="ch">${esc(ch)}</span>`;
+  });
+  return `<span class="roll" aria-label="${esc(str)}"><span aria-hidden="true">${out}</span></span>`;
+}
+function settleRolls() {
+  for (const [k, v] of rollNext) rolled.set(k, v);
+  rollNext.clear();
+  const cols = app.querySelectorAll(".col");
+  if (!cols.length) return;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    cols.forEach((c) => { c.style.transform = `translateY(${-c.dataset.to}em)`; });
+  }));
+}
+function rollPrice(p, key, cls = "") {
+  const s = fmtPrice(p);
+  return `<span class="${cls}">${roll(s.slice(0, 4), key)}<sup>${roll(s.slice(4), key + "s")}</sup></span>`;
+}
+
 /* ---------- prices ---------- */
 function isExact(cell, st, fuel) {
   if (st.stale || !EXACT_KINDS.has(cell.k)) return false;
   return cell.k !== "user" || ageHours(cell) <= (USER_MAX_AGE_BY_FUEL[fuel] ?? USER_MAX_AGE_H);
 }
 function fmtPrice(p) { return p.toFixed(3); }
-function pylon(p) { const s = fmtPrice(p); return `${s.slice(0, 4)}<sup>${s.slice(4)}</sup>`; }
 function haversineKm(a, b) {
   const R = 6371, r = (x) => (x * Math.PI) / 180;
   const dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
@@ -243,9 +382,12 @@ function kindLabel(row) {
   if (row.cell.k === "user") return row.exact ? t("user") : t("userOld");
   return t(row.cell.k) || "";
 }
+const discOf = (chain) => (state.useDisc ? (+state.disc[chain] || 0) / 100 : 0);
+const hasDisc = () => Object.values(state.disc).some((v) => +v > 0);
+const stationById = (id) => state.data.stations.find((s) => s.id === id);
 
 function rowsFor(opts = {}) {
-  const { ignoreChain = false, ignoreMode = false } = opts;
+  const { ignoreChain = false, ignoreMode = false, scopeOnly = false, fuel = state.fuel } = opts;
   const d = state.data;
   if (!d) return [];
   const rows = [];
@@ -254,20 +396,26 @@ function rowsFor(opts = {}) {
     if (state.city !== "all" && st.city !== state.city) continue;
     if (state.area && !(st.areas || []).includes(state.area)) continue;
     if (!ignoreChain && state.chain && st.chain !== state.chain) continue;
-    const cell = st.fuels[state.fuel];
+    const cell = st.fuels[fuel];
     if (!cell) continue;
-    const exact = isExact(cell, st, state.fuel);
-    if (query && !(`${d.chains[st.chain].name} ${st.address}`.toLowerCase().includes(query))) continue;
+    const exact = isExact(cell, st, fuel);
+    if (!scopeOnly) {
+      if (query && !(`${d.chains[st.chain].name} ${st.address}`.toLowerCase().includes(query))) continue;
+      if (state.favOnly && !state.favs.includes(st.id)) continue;
+    }
     if (!ignoreMode && state.mode === "exact" && !exact) continue;
-    const row = { st, cell, price: cell.p, exact, dist: null, total: null };
+    const disc = discOf(st.chain);
+    const price = Math.round((cell.p - disc) * 1000) / 1000;
+    const row = { st, cell, fuel, base: cell.p, price, disc, exact, dist: null, total: null };
     if (state.loc) {
       row.dist = haversineKm(state.loc, st) * ROAD_FACTOR;
+      if (!scopeOnly && state.radius && row.dist > state.radius) continue;
       const extraL = (2 * row.dist * state.consumption) / 100;
-      row.total = cell.p * (state.liters + extraL);
+      row.total = price * (state.liters + extraL);
     }
     rows.push(row);
   }
-  const useTotal = state.road && state.loc;
+  const useTotal = !scopeOnly && state.road && state.loc;
   const outdated = (r) => (r.cell.k === "user" && !r.exact ? 1 : 0); // old driver prices go last
   rows.sort((a, b) =>
     outdated(a) - outdated(b) ||
@@ -275,17 +423,83 @@ function rowsFor(opts = {}) {
       : a.price - b.price || (a.dist ?? 0) - (b.dist ?? 0) || (a.cell.ago ?? 9e9) - (b.cell.ago ?? 9e9)));
   return rows;
 }
-
-function historyDelta() {
+function bestFor(fuel) {
+  return rowsFor({ fuel, scopeOnly: true, ignoreMode: true }).find((r) => r.exact) || null;
+}
+function historyDelta(fuel = state.fuel) {
   const h = state.history;
   if (!h) return null;
   const days = Object.keys(h.days).sort();
   if (days.length < 2) return null;
-  const today = days[days.length - 1], prev = days[days.length - 2];
-  const a = h.days[today]?.[state.city]?.[state.fuel];
-  const b = h.days[prev]?.[state.city]?.[state.fuel];
+  const a = h.days[days[days.length - 1]]?.[state.city]?.[fuel];
+  const b = h.days[days[days.length - 2]]?.[state.city]?.[fuel];
   if (!a || !b) return null;
   return { now: a.min, prev: b.min, delta: a.min - b.min };
+}
+/* change against the last visit (preferred) or yesterday */
+function changeFor(fuel, row) {
+  const b = state.baseline?.v?.[`${state.city}|${fuel}`];
+  if (b != null && Math.abs(row.base - b) >= 0.0005) return { delta: row.base - b, src: "visit", prev: b };
+  if (!state.area && !state.chain) {
+    const h = historyDelta(fuel);
+    if (h && Math.abs(h.delta) >= 0.0005) return { delta: h.delta, src: "day", prev: h.prev };
+  }
+  return null;
+}
+function low30(fuel, base) {
+  const h = state.history;
+  if (!h || state.area || state.chain) return false;
+  const mins = Object.keys(h.days).sort().slice(-30).map((d) => h.days[d]?.[state.city]?.[fuel]?.min).filter((v) => v != null);
+  return mins.length >= 3 && base <= Math.min(...mins) + 0.0004;
+}
+function saveSnap() {
+  if (!state.data) return;
+  const old = store.get("snap", null);
+  const fresh = !old || Date.now() - old.t > 3 * 3600e3;
+  const snap = fresh ? { t: Date.now(), v: {}, f: {} } : old;
+  snap.v = snap.v || {}; snap.f = snap.f || {};
+  for (const f of FUEL_ORDER) {
+    const r = bestFor(f);
+    const key = `${state.city}|${f}`;
+    if (r && (fresh || snap.v[key] == null)) snap.v[key] = r.base;
+  }
+  for (const id of state.favs) {
+    const st = stationById(id);
+    if (!st) continue;
+    for (const f in st.fuels) { const key = `${id}|${f}`; if (fresh || snap.f[key] == null) snap.f[key] = st.fuels[f].p; }
+  }
+  store.set("snap", snap);
+}
+function heatHue(price, lo, hi) { return Math.round(140 - 132 * clamp((price - lo) / (hi - lo || 1), 0, 1)); }
+
+const pylonStatic = (p) => { const s = fmtPrice(p); return `${s.slice(0, 4)}<sup>${s.slice(4)}</sup>`; };
+const IS_PREVIEW = /\/next(\/|$)/.test(location.pathname);
+
+/* ---------- journal maths ---------- */
+function journalStats() {
+  const list = [...state.journal].sort((a, b) => a.t.localeCompare(b.t) || (a.odo ?? 0) - (b.odo ?? 0) || a.id - b.id);
+  const cons = {};
+  let last = null, acc = 0, segL = 0, segD = 0;
+  for (const e of list) {
+    if (!last) { if (e.full && e.odo != null) { last = e; acc = 0; } continue; }
+    acc += e.l;
+    if (e.full && e.odo != null) {
+      if (e.odo > last.odo) { cons[e.id] = (acc / (e.odo - last.odo)) * 100; segL += acc; segD += e.odo - last.odo; }
+      last = e; acc = 0;
+    }
+  }
+  const month = rigaToday().slice(0, 7);
+  let spend = 0, totalSpend = 0, totalL = 0;
+  for (const e of state.journal) {
+    const c = e.l * e.ppl;
+    totalSpend += c; totalL += e.l;
+    if (e.t.startsWith(month)) spend += c;
+  }
+  return {
+    cons, avgCons: segD ? (segL / segD) * 100 : null,
+    avgPrice: totalL ? totalSpend / totalL : null, spend, totalSpend, totalL,
+    newest: [...list].reverse(),
+  };
 }
 
 /* ---------- rendering ---------- */
@@ -293,6 +507,15 @@ const app = document.getElementById("app");
 
 function linkWaze(st) { return `https://waze.com/ul?ll=${st.lat},${st.lng}&navigate=yes`; }
 function linkGmaps(st) { return `https://www.google.com/maps/dir/?api=1&destination=${st.lat},${st.lng}`; }
+function presentFuels() {
+  const present = new Set();
+  if (state.data) for (const st of state.data.stations) if (state.city === "all" || st.city === state.city) for (const f in st.fuels) present.add(f);
+  return FUEL_ORDER.filter((f) => present.has(f));
+}
+const heartBtn = (id, cls = "heart") => {
+  const on = state.favs.includes(id);
+  return `<button class="${cls}" data-act="fav" data-v="${esc(id)}" aria-pressed="${on}" aria-label="${on ? t("removeFav") : t("addFav")}">${ICON.heart}</button>`;
+};
 
 function renderHeader() {
   const d = state.data;
@@ -305,102 +528,119 @@ function renderHeader() {
   }
   const cities = d ? d.cities : [];
   const areas = d && state.city !== "all" ? d.areas.filter((a) => a.city === state.city) : [];
-  return `
-  <header class="top"><div class="top-row">
-    <h1 class="brand">Degvielas <span>Radars</span></h1>
-    <button class="icon-btn" data-act="theme" aria-label="${t("theme")}" title="${t("theme")}">${state.theme === "light"
-      ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'
-      : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'}</button>
-    <button class="icon-btn" data-act="lang" aria-label="Language">${state.lang === "ru" ? "EN" : "RU"}</button>
-    <button class="icon-btn" data-act="refresh" aria-label="${t("refresh")}" ${state.loading ? 'aria-busy="true"' : ""}>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
-    </button>
-  </div>
-  <p class="meta">${meta || "&nbsp;"}</p>
-  ${cities.length ? `<div class="picker">
+  const picker = state.view !== "journal" && cities.length ? `<div class="picker">
     <select data-act="city" aria-label="${t("city")}"><option value="all" ${state.city === "all" ? "selected" : ""}>${t("allCountry")} (${d.stations.length})</option>${cities.map((c) => `<option value="${esc(c.slug)}" ${c.slug === state.city ? "selected" : ""}>${esc(c.name)} (${c.count})</option>`).join("")}</select>
-    <button class="icon-btn" data-act="near" aria-label="${t("nearMe")}" title="${t("nearMe")}">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
-      ${state.loc ? "" : `<span>${t("nearMe")}</span>`}
-    </button>
-  </div>` : ""}
-  ${areas.length ? `<div class="chips" role="group">
+    <button class="icon-btn ${state.loc ? "on" : ""}" data-act="near" aria-label="${t("nearMe")}" title="${t("nearMe")}">${ICON.near}${state.loc ? "" : `<span>${t("nearMe")}</span>`}</button>
+  </div>` : "";
+  const chips = state.view !== "journal" && areas.length ? `<div class="chips" role="group">
     <button class="chip" data-act="area" data-v="" aria-pressed="${!state.area}">${t("allArea")}</button>
     ${areas.map((a) => `<button class="chip" data-act="area" data-v="${esc(a.slug)}" aria-pressed="${state.area === a.slug}">${esc(a.name)}<small>${a.count}</small></button>`).join("")}
-  </div>` : ""}
+  </div>` : "";
+  return `
+  <header class="top"><div class="top-row">
+    ${ICON.radar}
+    <h1 class="brand">Degvielas <span>Radars</span>${IS_PREVIEW ? `<em class="beta">${t("preview")}</em>` : ""}</h1>
+    <button class="icon-btn" data-act="refresh" aria-label="${t("refresh")}" ${state.loading ? 'aria-busy="true"' : ""}>${ICON.refresh}</button>
+    <button class="icon-btn" data-act="sheet" aria-label="${t("settings")}">${ICON.gear}</button>
+  </div>
+  <p class="meta">${meta || "&nbsp;"}</p>
+  ${picker}${chips}
   </header>`;
 }
 
 function renderInstall() {
   if (isStandalone() || state.installed) return "";
-  const hiddenAt = store.get("installHidden", 0);
-  if (Date.now() - hiddenAt < INSTALL_SNOOZE_MS) return "";
-  const action = installPrompt
-    ? `<button class="btn-install" data-act="install">${t("install")}</button>`
-    : "";
+  if (Date.now() - store.get("installHidden", 0) < INSTALL_SNOOZE_MS) return "";
+  const action = installPrompt ? `<button class="btn-install" data-act="install">${t("install")}</button>` : "";
   const text = installPrompt ? t("installText") : isIos() ? t("installIos") : t("installAndroid");
-  return `<aside class="install" aria-label="${t("install")}">
-    <p>${text}</p>
-    ${action}
-    <button class="install-later" data-act="later">${t("later")}</button>
-  </aside>`;
+  return `<aside class="install" aria-label="${t("install")}"><p>${text}</p>${action}<button class="install-later" data-act="later">${t("later")}</button></aside>`;
 }
 
-function renderFuelTabs() {
-  const present = new Set();
-  if (state.data) for (const st of state.data.stations) if (state.city === "all" || st.city === state.city) for (const f in st.fuels) present.add(f);
-  const fuels = FUEL_ORDER.filter((f) => present.has(f));
-  if (fuels.length && !fuels.includes(state.fuel)) state.fuel = fuels[0];
-  return `<div class="fuels" role="group">${fuels.map((f) => `<button class="fuel" data-act="fuel" data-v="${f}" aria-pressed="${state.fuel === f}">${t("fuels")[f]}</button>`).join("")}</div>
-  <div class="seg" role="group">
+function fuelTabs() {
+  const fuels = presentFuels();
+  return `<div class="fuels" role="group">${fuels.map((f) => `<button class="fuel" data-act="fuel" data-v="${f}" aria-pressed="${state.fuel === f}">${t("fuels")[f]}</button>`).join("")}</div>`;
+}
+
+function renderBoard() {
+  const fuels = presentFuels();
+  const tiles = BOARD_FUELS.map((f, i) => {
+    const sel = state.fuel === f;
+    const r = fuels.includes(f) ? bestFor(f) : null;
+    if (!r) return `<button class="tile off" data-act="fuel" data-v="${f}" aria-pressed="${sel}" style="--i:${i}"><span class="tf">${t("fuels")[f]}</span><span class="tp">—</span></button>`;
+    const ch = changeFor(f, r);
+    const dcls = ch ? (ch.delta < 0 ? "down" : "up") : "";
+    const chain = state.data.chains[r.st.chain];
+    return `<button class="tile ${sel ? "sel" : ""} ${ch && ch.src === "visit" ? "chg " + dcls : ""}" data-act="fuel" data-v="${f}" aria-pressed="${sel}" style="--i:${i};--c:${esc(chain.color)}">
+      <span class="tf">${t("fuels")[f]}</span>
+      <span class="tp">${rollPrice(r.price, "tile" + f, "bp")}</span>
+      <span class="tc"><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</span>
+      <span class="td ${dcls}" ${ch ? `title="${ch.src === "visit" ? t("sinceVisit") : t("vsYest")}"` : ""}>${ch ? `${ch.delta < 0 ? "▼" : "▲"} ${(Math.abs(ch.delta) * 100).toFixed(1)}` : "&nbsp;"}</span>
+    </button>`;
+  }).join("");
+  const other = fuels.filter((f) => !BOARD_FUELS.includes(f));
+  return `<section class="board" aria-label="${t("boardH")}">
+    <div class="tiles">${tiles}</div>
+    ${other.length ? `<div class="chips" role="group" aria-label="${t("otherFuels")}">${other.map((f) => `<button class="chip" data-act="fuel" data-v="${f}" aria-pressed="${state.fuel === f}">${t("fuels")[f]}</button>`).join("")}</div>` : ""}
+  </section>`;
+}
+
+function renderFilters() {
+  const chips = [];
+  if (state.favs.length) chips.push(`<button class="chip" data-act="favonly" aria-pressed="${state.favOnly}">♥ ${t("favOnly")}<small>${state.favs.length}</small></button>`);
+  if (hasDisc()) chips.push(`<button class="chip" data-act="discchip" aria-pressed="${state.useDisc}">% ${t("discChip")}</button>`);
+  if (state.loc) {
+    chips.push(`<button class="chip" data-act="radius" data-v="" aria-pressed="${!state.radius}">${t("anyDist")}</button>`);
+    for (const r of RADII) chips.push(`<button class="chip" data-act="radius" data-v="${r}" aria-pressed="${state.radius === r}">≤ ${r} ${t("km")}</button>`);
+  }
+  return `<div class="seg" role="group">
     <button data-act="mode" data-v="exact" aria-pressed="${state.mode === "exact"}">${t("exact")}</button>
     <button data-act="mode" data-v="all" aria-pressed="${state.mode === "all"}">${t("all")}</button>
   </div>
-  <div class="search"><input type="search" data-act="q" value="${esc(state.q)}" placeholder="${t("search")}" aria-label="${t("search")}" autocomplete="off"></div>`;
+  <div class="search"><input type="search" data-act="q" value="${esc(state.q)}" placeholder="${t("search")}" aria-label="${t("search")}" autocomplete="off"></div>
+  ${chips.length ? `<div class="chips" role="group">${chips.join("")}</div>` : ""}`;
 }
 
-function renderPylon(rows) {
+function renderHero(rows) {
   if (!rows.length) {
-    const body = state.q.trim() ? t("noMatch") : t("emptyT");
-    const more = state.mode === "exact" ? `<p><button class="chip" data-act="mode" data-v="all">${t("showAllStations")}</button></p>` : "";
+    const body = state.q.trim() ? t("noMatch") : state.favOnly ? t("favNone") : t("emptyT");
+    const more = state.mode === "exact" && !state.favOnly ? `<p><button class="chip" data-act="mode" data-v="all">${t("showAllStations")}</button></p>` : "";
     return `<div class="empty"><b>${t("emptyH")}</b>${body}${more}</div>`;
   }
   const top = rows[0];
   const chain = state.data.chains[top.st.chain];
-  const tagClass = top.exact ? "good" : "warn";
-  const dl = historyDelta();
+  const ch = changeFor(state.fuel, top);
   let delta = "";
-  if (dl && !state.area && !state.chain) {
-    const c = Math.abs(dl.delta) * 100;
-    delta = `<p class="delta">${t("vsYest")}: ` + (c < 0.05
-      ? t("same")
-      : `<span class="${dl.delta < 0 ? "down" : "up"}">${dl.delta < 0 ? "−" : "+"}${c.toFixed(1)} ${t("cents")}</span> (${fmtPrice(dl.prev)} €)`) + `</p>`;
+  if (ch) {
+    const c = Math.abs(ch.delta) * 100;
+    delta = `<p class="delta">${ch.src === "visit" ? t("sinceVisit") : t("vsYest")}: <span class="${ch.delta < 0 ? "down" : "up"}">${ch.delta < 0 ? "▼ −" : "▲ +"}${c.toFixed(1)} ${t("cents")}</span> (${fmtPrice(ch.prev)} €)</p>`;
+  } else if (!state.area && !state.chain && historyDelta()) {
+    delta = `<p class="delta">${t("vsYest")}: ${t("same")}</p>`;
   }
   let hint = "";
   if (state.mode === "exact") {
     const est = rowsFor({ ignoreMode: true }).find((r) => !r.exact && r.price < top.price);
-    if (est) {
-      hint = `<p class="hint">${t("maybeCheaper")}: ${esc(state.data.chains[est.st.chain].name)} ${fmtPrice(est.price)} €. <button data-act="mode" data-v="all">${t("show")}</button></p>`;
-    }
+    if (est) hint = `<p class="hint">${t("maybeCheaper")}: ${esc(state.data.chains[est.st.chain].name)} ${fmtPrice(est.price)} €. <button data-act="mode" data-v="all">${t("show")}</button></p>`;
   }
-  if (!hint && state.mode === "exact" && rows.length < 5) {
-    hint = `<p class="hint">${t("fewExact")} <button data-act="mode" data-v="all">${t("showAllStations")}</button></p>`;
-  }
+  if (!hint && state.mode === "exact" && rows.length < 5) hint = `<p class="hint">${t("fewExact")} <button data-act="mode" data-v="all">${t("showAllStations")}</button></p>`;
   const extra = top.dist != null ? `<br>${top.dist.toFixed(1)} ${t("km")}` : "";
+  const lowBadge = top.exact && low30(state.fuel, top.base) ? `<span class="tag low">★ ${t("low30")}</span>` : "";
   return `
   <section class="pylon" aria-label="${t("cheapest")}">
-    <p class="where">${esc(chain.name)}</p>
-    <p class="addr">${esc(top.st.address)}</p>
+    <div class="p-top"><div><p class="where"><i class="ping" style="--c:${esc(chain.color)}"></i>${esc(chain.name)}</p>
+      <p class="addr">${esc(top.st.address)}</p></div>${heartBtn(top.st.id, "heart on-dark")}</div>
     <div class="price-line">
-      <div class="pylon-price" aria-label="${fmtPrice(top.price)} €/L">${pylon(top.price)}</div>
+      <div class="pylon-price" aria-label="${fmtPrice(top.price)} €/L">${rollPrice(top.price, "hero")}</div>
       <div class="price-side"><b>€/L</b>${t("fuels")[state.fuel]}${extra}</div>
     </div>
-    <span class="tag ${tagClass}">${kindLabel(top)}</span>
+    <span class="tag ${top.exact ? "good" : "warn"}">${kindLabel(top)}</span>
     ${top.cell.ch ? `<span class="tag">${dayWord(top.cell)}</span>` : ""}
+    ${top.disc > 0 ? `<span class="tag good">% ${t("withDisc")}: −${(top.disc * 100).toFixed(1)} ${t("cents")}</span>` : ""}
+    ${lowBadge}
     ${delta}
     <div class="actions">
       <a class="btn" href="${linkWaze(top.st)}" target="_blank" rel="noopener">${t("waze")}</a>
       <a class="btn ghost" href="${linkGmaps(top.st)}" target="_blank" rel="noopener">${t("gmaps")}</a>
+      <button class="btn ghost sq" data-act="share" data-v="${esc(top.st.id)}" aria-label="${t("share")}" title="${t("share")}">${ICON.share}</button>
     </div>
     ${hint}
   </section>`;
@@ -422,13 +662,39 @@ function renderCalc(rows) {
     <div class="field"><label for="liters">${t("liters")}</label><input id="liters" type="number" inputmode="decimal" min="1" max="200" value="${esc(state.liters)}" data-act="liters"></div>
     ${state.loc ? `<div class="field"><label for="cons">${t("consumption")}</label><input id="cons" type="number" inputmode="decimal" min="1" max="40" step="0.5" value="${esc(state.consumption)}" data-act="cons"></div>` : ""}
     ${state.loc ? `<label class="toggle"><input type="checkbox" data-act="road" ${state.road ? "checked" : ""}><span>${t("road")}<br><small style="color:var(--mute)">${t("roadHelp")}</small></span></label>` : ""}
-    <div class="sum"><strong>${t("tankCost")} ${cost.toFixed(2)} €</strong>
+    <div class="gauge" style="--f:${clamp(L / 80, 0.03, 1).toFixed(3)}" aria-hidden="true"><span class="liquid"></span></div>
+    <div class="sum"><strong>${t("tankCost")} ${roll(cost.toFixed(2), "cost")} €</strong>
       <p class="save">${saveAvg >= 0.005 ? `${t("saveAvg")} ${saveAvg.toFixed(2)} €` : ""}${saveAvg >= 0.005 && saveMax >= 0.005 ? ", " : ""}${saveMax >= 0.005 ? `${t("saveMax")} ${saveMax.toFixed(2)} €` : ""}</p></div>
   </div>`;
 }
 
+function renderFavs() {
+  if (!state.favs.length || state.favOnly) return "";
+  const cards = state.favs.map((id) => stationById(id)).filter(Boolean).map((st) => {
+    const cell = st.fuels[state.fuel];
+    if (!cell) return null;
+    const price = cell.p - discOf(st.chain);
+    return { st, cell, price, exact: isExact(cell, st, state.fuel) };
+  }).filter(Boolean).sort((a, b) => a.price - b.price);
+  const inner = cards.length ? cards.map((c, i) => {
+    const chain = state.data.chains[c.st.chain];
+    const prev = state.baseline?.f?.[`${c.st.id}|${state.fuel}`];
+    const dd = prev != null && Math.abs(c.cell.p - prev) >= 0.0005 ? c.cell.p - prev : null;
+    return `<button class="fav ${c.exact ? "" : "est"}" data-act="favgo" data-v="${esc(c.st.id)}" style="--i:${i};--c:${esc(chain.color)}">
+      <span class="fn"><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</span>
+      <span class="fa">${esc(c.st.address.split(",")[0])}</span>
+      <span class="fp">${rollPrice(c.price, "fav" + i, "bp")}</span>
+      ${dd != null ? `<span class="td ${dd < 0 ? "down" : "up"}">${dd < 0 ? "▼" : "▲"} ${(Math.abs(dd) * 100).toFixed(1)}</span>` : ""}
+    </button>`;
+  }).join("") : `<p class="sub">${t("favNone")}</p>`;
+  return `<h2>♥ ${t("favs")}</h2><div class="favrow">${inner}</div>`;
+}
+
 function renderList(rows) {
   if (!rows.length) return "";
+  const exactPrices = rows.filter((r) => r.exact).map((r) => r.price);
+  const pool = exactPrices.length ? exactPrices : rows.map((r) => r.price);
+  const lo = Math.min(...pool), hi = Math.max(...pool);
   const limit = state.showAll ? rows.length : 8;
   const items = rows.slice(0, limit).map((r, i) => {
     const chain = state.data.chains[r.st.chain];
@@ -436,12 +702,13 @@ function renderList(rows) {
       ? `<span class="note warn">${r.cell.k === "min" ? t("minShort") : kindLabel(r)}</span>`
       : r.cell.k === "user" ? `<span class="note">${kindLabel(r)}</span>` : "";
     const dist = r.dist != null ? `${r.dist.toFixed(1)} ${t("km")}, ` : "";
-    return `<li class="row">
+    return `<li class="row ${r.exact ? "heat" : "est"}" style="--i:${Math.min(i, 14)};--h:${heatHue(r.price, lo, hi)}">
       <span class="rank">${i + 1}</span>
       <div class="who"><b><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</b>
         <span>${esc(r.st.address)}</span>${note}
         <span class="note">${dist}${dayWord(r.cell)}</span></div>
-      <div class="rp"><b>${pylon(r.price)}</b><a href="${linkWaze(r.st)}" target="_blank" rel="noopener">${t("navTo")}</a>
+      <div class="rp"><b class="hp">${pylonStatic(r.price)}</b>${r.disc > 0 ? `<s class="was">${fmtPrice(r.base)}</s>` : ""}
+        <div class="ra">${heartBtn(r.st.id)}<a href="${linkWaze(r.st)}" target="_blank" rel="noopener">${ICON.nav}${t("navTo")}</a></div>
         <button class="more-prices" data-act="row" data-v="${esc(r.st.id)}" aria-expanded="${state.open === r.st.id}">${t("allPrices")}</button></div>
       ${state.open === r.st.id ? renderDetail(r.st) : ""}
     </li>`;
@@ -465,18 +732,15 @@ function renderDetail(st) {
 function renderChains() {
   const rows = rowsFor({ ignoreChain: true });
   const best = new Map();
-  for (const r of rows) {
-    const cur = best.get(r.st.chain);
-    if (!cur || r.price < cur.price) best.set(r.st.chain, r);
-  }
+  for (const r of rows) { const cur = best.get(r.st.chain); if (!cur || r.price < cur.price) best.set(r.st.chain, r); }
   const list = [...best.entries()].sort((a, b) => a[1].price - b[1].price);
   if (list.length < 2) return "";
   const lo = list[0][1].price, hi = list[list.length - 1][1].price;
-  const bars = list.map(([slug, r]) => {
+  const bars = list.map(([slug, r], i) => {
     const chain = state.data.chains[slug];
     const pct = 30 + (70 * (r.price - lo)) / (hi - lo || 1);
     const diff = ((r.price - lo) * 100).toFixed(1);
-    return `<div class="bar">
+    return `<div class="bar" style="--i:${i}">
       <button data-act="chain" data-v="${esc(slug)}" aria-pressed="${state.chain === slug}" ${state.chain === slug ? 'style="text-decoration:underline"' : ""}><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</button>
       <div class="track"><div class="fill" style="width:${pct.toFixed(0)}%;background:${esc(chain.color)}"></div></div>
       <div><em>${fmtPrice(r.price)}</em><small>${r === list[0][1] ? "" : "+" + diff}</small></div>
@@ -498,11 +762,14 @@ function renderTrend() {
   const line = (key) => pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.e[key]).toFixed(1)}`).join(" ");
   const last = pts[pts.length - 1];
   const label = (d) => d.slice(8, 10) + "." + d.slice(5, 7);
+  const area = `${line("min")} L${x(pts.length - 1).toFixed(1)},${H - pb} L${x(0).toFixed(1)},${H - pb} Z`;
   return `<h2>${t("trendH")}</h2><p class="sub">${t("trendSub")}</p>
   <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("trendH")}">
-    <path d="${line("avg")}" fill="none" stroke="var(--mute)" stroke-width="2" stroke-linejoin="round" stroke-dasharray="5 4"/>
-    <path d="${line("min")}" fill="none" stroke="var(--amber)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${x(pts.length - 1)}" cy="${y(last.e.min)}" r="4.5" fill="var(--amber)"/>
+    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--amber)" stop-opacity=".35"/><stop offset="1" stop-color="var(--amber)" stop-opacity="0"/></linearGradient></defs>
+    <path class="area" d="${area}" fill="url(#ag)"/>
+    <path class="ln avg" pathLength="1" d="${line("avg")}" fill="none" stroke="var(--mute)" stroke-width="2" stroke-linejoin="round" stroke-opacity=".8"/>
+    <path class="ln" pathLength="1" d="${line("min")}" fill="none" stroke="var(--amber)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle class="end" cx="${x(pts.length - 1)}" cy="${y(last.e.min)}" r="4.5" fill="var(--amber)"/>
     <text x="${pl}" y="${H - 5}">${label(pts[0].d)}</text>
     <text x="${W - pr}" y="${H - 5}" text-anchor="end">${label(last.d)}</text>
     <text x="${pl}" y="11">${hi.toFixed(3)}</text>
@@ -515,40 +782,234 @@ function spark(series, up) {
   if (!series || series.length < 2) return "";
   const W = 120, H = 30, lo = Math.min(...series), hi = Math.max(...series);
   const d = series.map((v, i) => `${i ? "L" : "M"}${((i * W) / (series.length - 1)).toFixed(1)},${(H - 2 - ((v - lo) * (H - 4)) / (hi - lo || 1)).toFixed(1)}`).join(" ");
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="30" aria-hidden="true"><path d="${d}" fill="none" stroke="${up ? "var(--bad)" : "var(--good)"}" stroke-width="2" stroke-linejoin="round"/></svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="30" aria-hidden="true"><path class="ln" pathLength="1" d="${d}" fill="none" stroke="${up ? "var(--bad)" : "var(--good)"}" stroke-width="2" stroke-linejoin="round"/></svg>`;
 }
 function renderOil() {
   const o = state.oil;
   if (!o) return "";
-  const card = (name, x) => {
+  const card = (name, x, key) => {
     const diff = x.price - x.prev, pct = (diff / x.prev) * 100, up = diff >= 0;
-    return `<div><small>${name}</small><b>${x.price.toFixed(2)} $</b>
-      <small class="${up ? "up" : "down"}">${up ? "+" : "−"}${Math.abs(diff).toFixed(2)} (${Math.abs(pct).toFixed(1)}%)</small>
+    return `<div><small>${name}</small><b>${roll(x.price.toFixed(2), key)} $</b>
+      <small class="${up ? "up" : "down"}">${up ? "▲ +" : "▼ −"}${Math.abs(diff).toFixed(2)} (${Math.abs(pct).toFixed(1)}%)</small>
       ${spark(x.series, up)}<small>${o.eurusd ? (x.price / o.eurusd).toFixed(2) + " € " + t("barrel") : ""}</small></div>`;
   };
-  return `<h2>${t("oilH")}</h2><div class="oil">${card("Brent", o.brent)}${card("WTI", o.wti)}</div>`;
+  return `<h2>${t("oilH")}</h2><div class="oil">${card("Brent", o.brent, "brent")}${card("WTI", o.wti, "wti")}</div>`;
 }
 
-function render() {
-  const keepScroll = window.scrollY;
-  const focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.act : null;
-  document.documentElement.lang = state.lang;
-  if (!state.data || !state.data.stations.length) {
-    app.innerHTML = `<div class="wrap">${renderHeader()}<div class="empty" style="grid-column:1/-1"><b>${t("noDataH")}</b>${t("noDataT")}</div></div>`;
-    return;
-  }
+function renderPrices() {
   const rows = rowsFor();
-  app.innerHTML = `<div class="wrap">
-    ${renderHeader()}
-    ${renderInstall()}
-    <div class="left">${renderFuelTabs()}${renderPylon(rows)}${renderCalc(rows)}</div>
-    <div class="right">${renderList(rows)}${renderChains()}${renderTrend()}${renderOil()}</div>
-    <footer class="foot"><p>${t("source")}</p></footer>
+  return `${renderInstall()}
+    <div class="left">${renderBoard()}${renderHero(rows)}${renderCalc(rows)}</div>
+    <div class="right">${renderFilters()}${renderFavs()}${renderList(rows)}${renderChains()}${renderTrend()}${renderOil()}</div>`;
+}
+
+/* ---------- map view ---------- */
+let mapObj = null, mapHost = null, mapFitKey = "", lastPop = null;
+
+function mapRows() { return rowsFor({ scopeOnly: true }); }
+
+function renderMapView() {
+  const rows = mapRows();
+  let pop = "";
+  if (state.selected) {
+    const st = stationById(state.selected);
+    if (st && st.fuels[state.fuel]) {
+      const cell = st.fuels[state.fuel], chain = state.data.chains[st.chain];
+      const exact = isExact(cell, st, state.fuel);
+      const row = { cell, exact };
+      const disc = discOf(st.chain);
+      const fresh = lastPop !== state.selected;
+      lastPop = state.selected;
+      const best = rows[0] && rows[0].st.id === st.id;
+      pop = `<div class="mpop ${fresh ? "in" : ""}">
+        <div class="mp-head"><span class="mp-n"><i class="dot" style="background:${esc(chain.color)}"></i><b>${esc(chain.name)}</b>${best ? `<span class="tag good">${t("mapCheapest")}</span>` : ""}</span>
+          ${heartBtn(st.id)}<button class="icon-btn sm" data-act="mclose" aria-label="${t("close")}">${ICON.close}</button></div>
+        <p class="addr">${esc(st.address)}</p>
+        <div class="mp-price"><span class="pp">${rollPrice(cell.p - disc, "pop", "bp")}</span><span class="u">€/L</span>
+          <span class="tag ${exact ? "good" : "warn"}">${kindLabel(row)}</span></div>
+        <div class="actions">
+          <a class="btn" href="${linkWaze(st)}" target="_blank" rel="noopener">${t("waze")}</a>
+          <a class="btn ghost" href="${linkGmaps(st)}" target="_blank" rel="noopener">${t("gmaps")}</a>
+          <button class="btn ghost sq" data-act="share" data-v="${esc(st.id)}" aria-label="${t("share")}">${ICON.share}</button>
+        </div>
+        <button class="more-prices" data-act="row" data-v="${esc(st.id)}" aria-expanded="${state.open === st.id}">${t("allPrices")}</button>
+        ${state.open === st.id ? renderDetail(st) : ""}
+      </div>`;
+    } else lastPop = null;
+  } else lastPop = null;
+  return `${fuelTabs()}
+  <div class="seg slim" role="group">
+    <button data-act="mode" data-v="exact" aria-pressed="${state.mode === "exact"}">${t("exact")}</button>
+    <button data-act="mode" data-v="all" aria-pressed="${state.mode === "all"}">${t("all")}</button>
+  </div>
+  <div class="mapbox">
+    <div id="mapslot"></div>
+    <div class="mm-ctl zoom">
+      <button data-act="mzoom" data-v="1" aria-label="${t("mapZoomIn")}">${ICON.plus}</button>
+      <button data-act="mzoom" data-v="-1" aria-label="${t("mapZoomOut")}">${ICON.minus}</button>
+      <button data-act="mfit" aria-label="${t("mapFit")}">${ICON.fit}</button>
+      <button data-act="mme" class="${state.loc ? "on" : ""}" aria-label="${t("mapMe")}">${ICON.near}</button>
+    </div>
+    ${rows.length ? "" : `<div class="mm-empty">${t("mapEmpty")}</div>`}
+    ${pop}
+  </div>
+  <p class="sub" style="margin-top:10px">${t("mapHint")}</p>`;
+}
+
+function attachMap() {
+  const slot = app.querySelector("#mapslot");
+  if (!slot || typeof MiniMap === "undefined") return;
+  if (!mapObj) {
+    mapHost = document.createElement("div");
+    mapHost.className = "mapel";
+    mapObj = new MiniMap(mapHost, { onPick: pickStation });
+    mapHost.addEventListener("click", (e) => {
+      if (mapObj.dragged || e.target.closest(".mk")) return;
+      if (state.selected) { state.selected = null; render(false); }
+    });
+  }
+  slot.replaceWith(mapHost);
+  mapObj._measure();
+  mapObj.setDark(state.theme !== "light");
+  const rows = mapRows();
+  const exactPrices = rows.filter((r) => r.exact).map((r) => r.price);
+  const pool = exactPrices.length ? exactPrices : rows.map((r) => r.price);
+  const lo = Math.min(...pool), hi = Math.max(...pool);
+  const list = rows.map((r, i) => {
+    const chain = state.data.chains[r.st.chain];
+    const hue = r.exact ? heatHue(r.price, lo, hi) : 220;
+    const sel = state.selected === r.st.id;
+    return {
+      id: r.st.id, lat: r.st.lat, lng: r.st.lng, prio: i, force: sel || i === 0,
+      cls: `${sel ? "sel " : ""}${i === 0 ? "best " : ""}${r.exact ? "" : "est"}`.trim(),
+      html: `<span class="pin" style="--h:${hue};--c:${esc(chain.color)}"><i class="pdot"></i><b>${fmtPrice(r.price)}</b></span>`,
+      dotHtml: `<span class="pin mini" style="--h:${hue};--c:${esc(chain.color)}"></span>`,
+    };
+  });
+  if (state.loc) list.push({ id: "__me", lat: state.loc.lat, lng: state.loc.lng, prio: -1, force: true, noPick: true, cls: "me", html: '<span class="me-dot"></span>', dotHtml: '<span class="me-dot"></span>' });
+  mapObj.setMarkers(list);
+  const key = [state.city, state.area, state.chain].join("|");
+  if (mapFitKey !== key && rows.length) { mapFitKey = key; mapObj.fit(rows.map((r) => r.st), { animate: false }); }
+  mapObj.draw();
+}
+function pickStation(id) {
+  const st = stationById(id);
+  if (!st) return;
+  state.selected = id; state.open = null;
+  buzz(10);
+  render(false);
+  if (mapObj) mapObj.flyTo(st.lat, st.lng, Math.max(mapObj.z, 13.5), 0.3, 600);
+}
+
+/* ---------- journal view ---------- */
+function renderJournal() {
+  const s = journalStats();
+  const f = state.jf;
+  if (!f.date) f.date = rigaToday();
+  const best = bestFor(state.fuel);
+  const cards = state.journal.length === 0 ? "" : `<div class="jstats">
+    <div style="--i:0"><small>${t("jCons")}</small><b>${s.avgCons != null ? roll(s.avgCons.toFixed(1), "jc") : "—"}</b><small>${t("consUnit")}</small></div>
+    <div style="--i:1"><small>${t("jAvgPrice")}</small><b>${s.avgPrice != null ? roll(s.avgPrice.toFixed(3), "jp") : "—"}</b><small>€/${state.lang === "ru" ? "л" : "l"}</small></div>
+    <div style="--i:2"><small>${t("jMonth")}</small><b>${roll(s.spend.toFixed(2), "jm")}</b><small>€</small></div>
   </div>`;
+  const per100 = s.avgCons != null && s.avgPrice != null ? `<p class="sub">${t("jPer100")}: <b>${((s.avgCons * s.avgPrice)).toFixed(2)} €</b></p>` : "";
+  const items = s.newest.map((e, i) => `<li class="jrow" style="--i:${Math.min(i, 10)}">
+      <div><b>${esc(e.t.slice(8, 10) + "." + e.t.slice(5, 7) + "." + e.t.slice(0, 4))}</b>
+        <span>${e.l.toFixed(2)} ${state.lang === "ru" ? "л" : "l"} × ${e.ppl.toFixed(3)} €${e.odo != null ? `, ${Math.round(e.odo)} ${t("km")}` : ""}${e.full ? "" : ", " + (state.lang === "ru" ? "не полный" : "partial")}</span></div>
+      <div class="jr"><b>${(e.l * e.ppl).toFixed(2)} €</b>${s.cons[e.id] ? `<span class="cons">${s.cons[e.id].toFixed(1)} ${t("consUnit")}</span>` : ""}</div>
+      <button class="icon-btn sm" data-act="jdel" data-v="${e.id}" aria-label="${t("jDel")}">${ICON.trash}</button>
+    </li>`).join("");
+  return `<section class="jview">
+    <h2 style="margin-top:20px">${t("jH")}</h2><p class="sub">${t("jSub")}</p>
+    ${cards}${per100}
+    ${s.avgCons != null ? `<button class="chip" data-act="jusecons">${t("jUse")} (${s.avgCons.toFixed(1)})</button>` : ""}
+    <form class="jform" data-act="jform" novalidate>
+      <div class="field"><label for="jd">${t("jDate")}</label><input id="jd" type="date" data-act="jf" data-v="date" value="${esc(f.date)}"></div>
+      <div class="field"><label for="jl">${t("jLiters")}</label><input id="jl" type="number" step="0.01" min="0" inputmode="decimal" data-act="jf" data-v="l" value="${esc(f.l)}" placeholder="0"></div>
+      <div class="field"><label for="jpp">${t("jPrice")}</label><input id="jpp" type="number" step="0.001" min="0" inputmode="decimal" data-act="jf" data-v="ppl" value="${esc(f.ppl)}" placeholder="0.000"></div>
+      <div class="field"><label for="jo">${t("jOdo")}</label><input id="jo" type="number" step="1" min="0" inputmode="numeric" data-act="jf" data-v="odo" value="${esc(f.odo)}" placeholder="0"></div>
+      ${best ? `<button type="button" class="chip wide" data-act="jbest">${t("jBest")}: ${fmtPrice(best.price)} €</button>` : ""}
+      <label class="toggle"><input type="checkbox" data-act="jfull" ${f.full ? "checked" : ""}><span>${t("jFull")}</span></label>
+      <button type="submit" class="btn wide">${t("jAdd")}</button>
+    </form>
+    ${items ? `<ul class="jlist">${items}</ul><button class="more" data-act="jcsv">${t("jCsv")}</button>` : `<div class="empty"><b>${t("jH")}</b>${t("jEmpty")}</div>`}
+  </section>`;
+}
+
+/* ---------- settings sheet ---------- */
+let sheetFresh = false;
+function renderSheet() {
+  const fresh = sheetFresh; sheetFresh = false;
+  const chains = state.data ? Object.entries(state.data.chains).filter(([slug]) => state.data.stations.some((s) => s.chain === slug)) : [];
+  const counts = {};
+  if (state.data) for (const s of state.data.stations) counts[s.chain] = (counts[s.chain] || 0) + 1;
+  chains.sort((a, b) => counts[b[0]] - counts[a[0]]);
+  return `<div class="scrim ${fresh ? "in" : ""}" data-act="closesheet"></div>
+  <section class="sheet ${fresh ? "in" : ""}" role="dialog" aria-modal="true" aria-label="${t("settings")}">
+    <div class="grab"></div>
+    <div class="sh-head"><h2>${t("settings")}</h2><button class="icon-btn sm" data-act="closesheet" aria-label="${t("close")}">${ICON.close}</button></div>
+    <div class="set-row"><span>${t("language")}</span><div class="seg inline" role="group">
+      <button data-act="setlang" data-v="ru" aria-pressed="${state.lang === "ru"}">RU</button>
+      <button data-act="setlang" data-v="en" aria-pressed="${state.lang === "en"}">EN</button></div></div>
+    <div class="set-row"><span>${t("themeLabel")}</span><div class="seg inline" role="group">
+      <button data-act="settheme" data-v="dark" aria-pressed="${state.theme === "dark"}">${t("dark")}</button>
+      <button data-act="settheme" data-v="light" aria-pressed="${state.theme === "light"}">${t("light")}</button></div></div>
+    <label class="set-row"><span>${t("haptics")}</span><input type="checkbox" class="sw" data-act="haptics" ${state.haptics ? "checked" : ""}></label>
+    <h3>${t("discH")}</h3><p class="sub">${t("discHelp")}</p>
+    <label class="set-row"><span>${t("discApply")}</span><input type="checkbox" class="sw" data-act="usedisc" ${state.useDisc ? "checked" : ""}></label>
+    <div class="disc-list">${chains.map(([slug, c]) => `<label class="disc"><span><i class="dot" style="background:${esc(c.color)}"></i>${esc(c.name)}</span>
+      <input type="number" step="0.5" min="0" max="30" inputmode="decimal" placeholder="0" data-act="disc" data-v="${esc(slug)}" value="${+state.disc[slug] > 0 ? esc(state.disc[slug]) : ""}"><small>¢/${state.lang === "ru" ? "л" : "l"}</small></label>`).join("")}</div>
+  </section>`;
+}
+
+let navShown = 0;
+function renderNav() {
+  const items = [["prices", ICON.prices, t("navPrices")], ["map", ICON.map, t("navMap")], ["journal", ICON.journal, t("navJournal")]];
+  const idx = items.findIndex((i) => i[0] === state.view);
+  return `<nav class="bnav" style="--idx:${navShown}" data-idx="${idx}" aria-label="Menu"><span class="ind"></span>${items.map(([v, ic, label]) =>
+    `<button data-act="nav" data-v="${v}" ${state.view === v ? 'aria-current="page"' : ""}>${ic}<span>${label}</span></button>`).join("")}</nav>`;
+}
+
+function renderSkeleton() {
+  return `<div class="left"><div class="tiles">${[0, 1, 2].map((i) => `<div class="tile sk" style="--i:${i}"></div>`).join("")}</div><div class="pylon sk-hero"></div></div>
+  <p class="sub" style="margin-top:14px">${t("loading")}</p>`;
+}
+
+let pendingPop = null;
+function render(anim = true) {
+  const keepScroll = window.scrollY;
+  const active = document.activeElement;
+  let focusSel = null, caret = null;
+  if (active && active.dataset && /^(liters|cons|q|jf|disc)$/.test(active.dataset.act || "")) {
+    focusSel = `[data-act="${active.dataset.act}"]` + (active.dataset.v ? `[data-v="${active.dataset.v}"]` : "");
+    try { caret = [active.selectionStart, active.selectionEnd]; } catch { caret = null; }
+  }
+  document.documentElement.lang = state.lang;
+  if (state.data) {
+    const present = presentFuels();
+    if (present.length && !present.includes(state.fuel)) state.fuel = present[0];
+  }
+  let body;
+  if (!state.data) body = state.loading ? renderSkeleton() : `<div class="empty"><b>${t("noDataH")}</b>${t("noDataT")}</div>`;
+  else if (!state.data.stations.length) body = `<div class="empty"><b>${t("noDataH")}</b>${t("noDataT")}</div>`;
+  else if (state.view === "map") body = renderMapView();
+  else if (state.view === "journal") body = renderJournal();
+  else body = renderPrices();
+  app.innerHTML = `<div class="wrap v-${state.view} ${anim ? "enter" : ""}">${renderHeader()}${body}
+    <footer class="foot"><p>${t("source")}</p></footer></div>${renderNav()}${state.sheet ? renderSheet() : ""}`;
+  document.body.classList.toggle("noscroll", state.sheet);
+  if (state.data && state.view === "map") attachMap();
+  settleRolls();
+  const navEl = app.querySelector(".bnav");
+  if (navEl) { const to = +navEl.dataset.idx; requestAnimationFrame(() => requestAnimationFrame(() => navEl.style.setProperty("--idx", to))); navShown = to; }
   window.scrollTo(0, keepScroll);
-  if (focused === "liters" || focused === "cons" || focused === "q") {
-    const el = app.querySelector(`[data-act="${focused}"]`);
-    if (el) { el.focus(); el.setSelectionRange?.(el.value.length, el.value.length); }
+  if (focusSel) {
+    const el = app.querySelector(focusSel);
+    if (el) { el.focus({ preventScroll: true }); try { if (caret && caret[0] != null) el.setSelectionRange(caret[0], caret[1]); } catch { /* number inputs */ } }
+  }
+  if (pendingPop) {
+    app.querySelectorAll(`.heart[data-v="${CSS.escape(pendingPop)}"]`).forEach((h) => h.classList.add("pop"));
+    pendingPop = null;
   }
 }
 
@@ -558,72 +1019,167 @@ async function getJson(name, bust) {
   if (!res.ok) throw new Error(name + " " + res.status);
   return res.json();
 }
-async function load(bust = false) {
+async function load(bust = false, anim = true) {
   state.loading = true;
-  render();
+  render(false);
   const [data, history, oil] = await Promise.allSettled([getJson("prices", bust), getJson("history", bust), getJson("oil", bust)]);
   if (data.status === "fulfilled") state.data = data.value;
   if (history.status === "fulfilled") state.history = history.value;
   if (oil.status === "fulfilled") state.oil = oil.value;
   if (state.data && state.city !== "all" && !state.data.cities.some((c) => c.slug === state.city)) state.city = "riga";
   state.loading = false;
-  render();
+  render(anim);
+  saveSnap();
 }
 
-/* ---------- events ---------- */
+/* ---------- actions ---------- */
 function locate() {
-  if (!navigator.geolocation) { alert(t("locFail")); return; }
+  if (!navigator.geolocation) { toast(t("locFail")); return; }
   navigator.geolocation.getCurrentPosition(
-    (pos) => { state.loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }; state.road = true; render(); },
-    () => alert(t("locFail")),
+    (pos) => {
+      state.loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      state.road = true;
+      buzz(12);
+      render();
+      if (state.view === "map" && mapObj) mapObj.flyTo(state.loc.lat, state.loc.lng, 13, 0.5, 700);
+    },
+    () => toast(t("locFail")),
     { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
   );
 }
+function setView(v) {
+  if (state.view === v) return;
+  state.view = v;
+  state.sheet = false;
+  state.selected = null;
+  rolled.clear();
+  buzz(6);
+  render(true);
+  window.scrollTo(0, 0);
+}
+async function shareStation(id) {
+  const st = stationById(id);
+  const cell = st && st.fuels[state.fuel];
+  if (!cell) return;
+  const text = `${t("sharePrefix")} ${t("fuels")[state.fuel]}: ${fmtPrice(cell.p)} € — ${state.data.chains[st.chain].name}, ${st.address}`;
+  const url = location.href.split("#")[0].split("?")[0];
+  try {
+    if (navigator.share) { await navigator.share({ title: "Degvielas Radars", text, url }); return; }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(`${text} ${url}`); toast(t("copied")); } catch { toast(text); }
+}
+function toggleFav(id) {
+  const i = state.favs.indexOf(id);
+  if (i < 0) { state.favs.push(id); toast(t("favAdded")); pendingPop = id; } else { state.favs.splice(i, 1); toast(t("favRemoved")); }
+  store.set("favs", state.favs);
+  if (!state.favs.length) state.favOnly = false;
+  buzz(18);
+  saveSnap();
+  render(false);
+}
+function addFill() {
+  const f = state.jf;
+  const l = parseFloat(String(f.l).replace(",", ".")), ppl = parseFloat(String(f.ppl).replace(",", "."));
+  const odo = f.odo === "" ? null : parseFloat(String(f.odo).replace(",", "."));
+  if (!(l > 0) || !(ppl > 0)) { toast(t("jBad")); buzz([30, 40, 30]); return; }
+  state.journal.push({ id: Date.now(), t: f.date || rigaToday(), l, ppl, odo: Number.isFinite(odo) ? odo : null, full: !!f.full });
+  store.set("journal", state.journal);
+  state.jf = { date: "", l: "", ppl: "", odo: "", full: true };
+  toast(t("jSaved"));
+  buzz(20);
+  render(false);
+}
+function csvText() {
+  const rows = [...state.journal].sort((a, b) => a.t.localeCompare(b.t));
+  return ["date,liters,price_eur_per_l,total_eur,odometer_km,full_tank"]
+    .concat(rows.map((e) => [e.t, e.l, e.ppl, (e.l * e.ppl).toFixed(2), e.odo ?? "", e.full ? 1 : 0].join(","))).join("\n");
+}
 
+/* ---------- events ---------- */
 app.addEventListener("click", (e) => {
   const el = e.target.closest("[data-act]");
-  if (!el || el.tagName === "SELECT" || el.tagName === "INPUT") return;
-  if (el.dataset.act !== "row" && e.target.closest("a")) return;
+  if (!el || el.tagName === "SELECT" || el.tagName === "INPUT" || el.tagName === "FORM") return;
+  if (el.dataset.act !== "row" && el.dataset.act !== "share" && e.target.closest("a")) return;
   const v = el.dataset.v;
+  let anim = true;
   switch (el.dataset.act) {
-    case "theme": state.theme = state.theme === "light" ? "dark" : "light"; store.set("theme", state.theme); applyTheme(); break;
-    case "lang": state.lang = state.lang === "ru" ? "en" : "ru"; store.set("lang", state.lang); break;
-    case "refresh": load(true); return;
-    case "fuel": state.fuel = v; store.set("fuel", v); state.showAll = false; break;
+    case "nav": setView(v); return;
+    case "sheet": state.sheet = true; sheetFresh = true; buzz(6); render(false); return;
+    case "closesheet": state.sheet = false; render(false); return;
+    case "setlang": state.lang = v; store.set("lang", v); render(false); return;
+    case "settheme": state.theme = v; store.set("theme", v); applyTheme(); render(false); return;
+    case "refresh": buzz(10); load(true); return;
+    case "fuel": state.fuel = v; store.set("fuel", v); state.showAll = false; state.open = null; buzz(8); break;
     case "mode": state.mode = v; store.set("mode", v); break;
-    case "area": state.area = v || null; state.showAll = false; break;
-    case "chain": state.chain = state.chain === v ? null : v; state.showAll = false; break;
-    case "more": state.showAll = !state.showAll; break;
-    case "row": state.open = state.open === v ? null : v; break;
+    case "area": state.area = v || null; state.showAll = false; mapFitKey = ""; break;
+    case "chain": state.chain = state.chain === v ? null : v; state.showAll = false; mapFitKey = ""; break;
+    case "more": state.showAll = !state.showAll; anim = false; break;
+    case "row": state.open = state.open === v ? null : v; anim = false; break;
     case "near": locate(); return;
-    case "install": {
-      const evt = installPrompt;
-      if (evt) { evt.prompt(); evt.userChoice.finally(() => { installPrompt = null; render(); }); }
+    case "fav": toggleFav(v); return;
+    case "favonly": state.favOnly = !state.favOnly; state.showAll = false; buzz(8); break;
+    case "favgo": state.selected = v; state.view = "map"; state.open = null; rolled.clear(); render(true); window.scrollTo(0, 0);
+      { const st = stationById(v); if (st && mapObj) setTimeout(() => mapObj.flyTo(st.lat, st.lng, 14, 0.3, 700), 60); }
+      return;
+    case "discchip": state.useDisc = !state.useDisc; store.set("useDisc", state.useDisc); break;
+    case "radius": state.radius = v ? +v : null; state.showAll = false; buzz(8); break;
+    case "share": shareStation(v); return;
+    case "mzoom": if (mapObj) mapObj.zoomBy(+v); buzz(5); return;
+    case "mfit": if (mapObj) { const rows = mapRows(); if (rows.length) mapObj.fit(rows.map((r) => r.st), { animate: true }); } return;
+    case "mme": if (state.loc && mapObj) mapObj.flyTo(state.loc.lat, state.loc.lng, 14, 0.5, 600); else locate(); return;
+    case "mclose": state.selected = null; render(false); return;
+    case "jbest": { const b = bestFor(state.fuel); if (b) { state.jf.ppl = b.price.toFixed(3); buzz(8); render(false); } return; }
+    case "jdel": state.journal = state.journal.filter((x) => String(x.id) !== v); store.set("journal", state.journal); buzz(12); render(false); return;
+    case "jusecons": {
+      const s = journalStats();
+      if (s.avgCons != null) { state.consumption = Math.round(s.avgCons * 10) / 10; store.set("consumption", state.consumption); toast(t("jUsed")); buzz(12); }
       return;
     }
-    case "later": store.set("installHidden", Date.now()); break;
+    case "jcsv": navigator.clipboard.writeText(csvText()).then(() => toast(t("exportHint")), () => toast(csvText().slice(0, 120))); return;
+    case "install": {
+      const evt = installPrompt;
+      if (evt) { evt.prompt(); evt.userChoice.finally(() => { installPrompt = null; render(false); }); }
+      return;
+    }
+    case "later": store.set("installHidden", Date.now()); anim = false; break;
     default: return;
   }
-  render();
+  render(anim);
 });
 app.addEventListener("change", (e) => {
   const el = e.target;
-  if (el.dataset.act === "city") { state.city = el.value; state.area = null; state.chain = null; state.showAll = false; store.set("city", state.city); render(); }
-  if (el.dataset.act === "road") { state.road = el.checked; render(); }
+  const act = el.dataset.act;
+  if (act === "city") {
+    state.city = el.value; state.area = null; state.chain = null; state.showAll = false; state.selected = null; store.set("city", state.city);
+    buzz(8); render(true); saveSnap();
+  }
+  if (act === "road") { state.road = el.checked; render(false); }
+  if (act === "jfull") state.jf.full = el.checked;
+  if (act === "haptics") { state.haptics = el.checked; store.set("haptics", el.checked); if (el.checked) buzz(15); }
+  if (act === "usedisc") { state.useDisc = el.checked; store.set("useDisc", el.checked); }
 });
 app.addEventListener("input", (e) => {
   const el = e.target;
-  if (el.dataset.act === "q") { state.q = el.value; state.showAll = true; render(); return; }
+  const act = el.dataset.act;
+  if (act === "q") { state.q = el.value; state.showAll = true; render(false); return; }
+  if (act === "jf") { state.jf[el.dataset.v] = el.value; return; }
   const n = parseFloat(String(el.value).replace(",", "."));
-  if (el.dataset.act === "liters" && n > 0) { state.liters = n; store.set("liters", n); render(); }
-  if (el.dataset.act === "cons" && n > 0) { state.consumption = n; store.set("consumption", n); render(); }
+  if (act === "disc") {
+    if (n > 0) state.disc[el.dataset.v] = n; else delete state.disc[el.dataset.v];
+    store.set("disc", state.disc);
+    return;
+  }
+  if (act === "liters" && n > 0) { state.liters = n; store.set("liters", n); render(false); }
+  if (act === "cons" && n > 0) { state.consumption = n; store.set("consumption", n); render(false); }
 });
-window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; if (state.data) render(); });
-window.addEventListener("appinstalled", () => { state.installed = true; installPrompt = null; render(); });
+app.addEventListener("submit", (e) => { e.preventDefault(); addFill(); });
+window.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.sheet) { state.sheet = false; render(false); } });
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; if (state.data) render(false); });
+window.addEventListener("appinstalled", () => { state.installed = true; installPrompt = null; render(false); });
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && state.data) {
+  if (document.visibilityState === "visible" && state.data && !state.sheet) {
     const ageMin = (Date.now() - Date.parse(state.data.generated_at)) / 60000;
-    if (ageMin > 15) load(true); else render();
+    if (ageMin > 15) load(true, false); else render(false);
   }
 });
 
