@@ -746,7 +746,6 @@ button:active:not(:disabled), .btn:active { transition-duration: .08s; }
 :root[data-theme="light"] .refinery .l-near { --c: rgba(70, 40, 14, .62); }
 .refinery .warn { fill: #ff5a4a; opacity: .5; }
 .refinery .lt { fill: #ffc766; opacity: .45; }
-.refinery .flame { transform-box: fill-box; transform-origin: 50% 100%; animation: flicker 2.8s ease-in-out infinite alternate; }
 .refinery .flare-glow { transform-box: fill-box; transform-origin: center; animation: flareGlow 7s ease-in-out infinite alternate; }
 @keyframes flicker { from { transform: scale(1, .94); opacity: .88; } to { transform: scale(.96, 1.06); opacity: 1; } }
 @keyframes flareGlow { from { opacity: .7; } to { opacity: .95; } }
@@ -863,3 +862,22 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 .row.near::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, hsl(var(--h) 85% 55% / .0) 0%, hsl(var(--h) 85% 55% / .32) 38%, hsl(var(--h) 90% 62% / .16) 55%, transparent 75%); transform: translateX(-105%); animation: nearSweep 4.2s cubic-bezier(.45, 0, .25, 1) infinite; will-change: transform; }
 @keyframes nearSweep { 0% { transform: translateX(-105%); opacity: 1; } 55% { transform: translateX(10%); opacity: 1; } 80% { transform: translateX(105%); opacity: 0; } 100% { transform: translateX(105%); opacity: 0; } }
 .neartag { color: hsl(var(--h) 80% 62%); font-weight: 700; }
+
+/* living flare: layered flame shapes breathe out of phase (shape only, no opacity blinking) */
+.refinery .fl { transform-box: fill-box; transform-origin: 50% 100%; }
+.refinery .f1 { animation: fl1 1.9s ease-in-out infinite alternate; }
+.refinery .f2 { animation: fl2 1.25s ease-in-out infinite alternate; }
+.refinery .f3 { animation: fl3 .9s ease-in-out infinite alternate; }
+.refinery .f4 { animation: fl4 1.5s ease-in-out infinite; }
+@keyframes fl1 { 0% { transform: scale(1, 1) skewX(0); } 30% { transform: scale(.94, 1.08) skewX(4deg); } 65% { transform: scale(1.06, .95) skewX(-3deg); } 100% { transform: scale(.97, 1.12) skewX(2deg); } }
+@keyframes fl2 { 0% { transform: scale(1, 1) skewX(2deg); } 40% { transform: scale(.92, 1.12) skewX(-5deg); } 100% { transform: scale(1.05, .92) skewX(4deg); } }
+@keyframes fl3 { from { transform: scale(1, 1); } to { transform: scale(.88, 1.18); } }
+@keyframes fl4 { 0% { transform: translate(0, 4px) scale(.7, .6); opacity: .0; } 25% { opacity: .8; } 60% { transform: translate(-1.5px, -3px) scale(1, 1.2); opacity: .55; } 100% { transform: translate(1px, -10px) scale(.5, .9); opacity: 0; } }
+.refinery .em { fill: #ffc766; opacity: 0; transform-box: fill-box; }
+.refinery .e1 { animation: ember 4.1s ease-out infinite; }
+.refinery .e2 { animation: ember 5.3s ease-out 1.4s infinite; }
+.refinery .e3 { animation: ember 3.6s ease-out 2.3s infinite; }
+@keyframes ember { 0% { transform: translate(0, 0); opacity: 0; } 12% { opacity: .85; } 100% { transform: translate(var(--ex, 6px), -34px); opacity: 0; } }
+.refinery .e2 { --ex: -7px; } .refinery .e3 { --ex: 3px; }
+.refinery .flare-glow { animation: flareGlow 2.6s ease-in-out infinite alternate; }
+@keyframes flareGlow { 0% { opacity: .65; } 45% { opacity: .95; } 100% { opacity: .75; } }

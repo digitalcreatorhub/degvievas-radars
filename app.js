@@ -1536,9 +1536,15 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
     return `<svg class="refinery" viewBox="0 0 1000 260" preserveAspectRatio="xMidYMax meet"><defs>
       <linearGradient id="fog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--fog)" stop-opacity="0"/><stop offset=".6" stop-color="var(--fog)" stop-opacity=".9"/><stop offset="1" stop-color="var(--fog)" stop-opacity="1"/></linearGradient>
       <filter id="fb" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation=".9"/></filter><radialGradient id="flare"><stop offset="0" stop-color="#ffb35c" stop-opacity=".7"/><stop offset=".15" stop-color="#ff8a3a" stop-opacity=".35"/><stop offset="1" stop-color="#ff6a2a" stop-opacity="0"/></radialGradient></defs>
-      <circle class="flare-glow" cx="741" cy="112" r="140" fill="url(#flare)"/>
-      ${layer("l-far", far)}${fog(176, 60, .75)}
-      ${layer("l-mid", mid, '<g class="flarestack"><rect x="739.6" y="120" width="1.8" height="112"/><g class="flame"><path d="M740.5 100C737.6 107 736.8 112 738.2 117C739 119.4 742 119.4 742.8 117C744.2 112 743 106 740.5 100Z" fill="#ff9a3a" filter="url(#fb)"/><path d="M740.5 108C739.2 112 739.2 115 740.5 118C741.8 115 741.8 112 740.5 108Z" fill="#fff2cf"/></g></g>')}${fog(206, 46, .65)}
+            ${layer("l-far", far)}${fog(176, 60, .75)}
+      ${layer("l-mid", mid)}<g class="rl l-mid flareg"><g transform="translate(-180 0)"><circle class="flare-glow" cx="740.5" cy="66" r="120" fill="url(#flare)"/>
+        <g class="flarestack"><rect x="739.6" y="86" width="1.8" height="146"/><rect x="738" y="86" width="5" height="2"/></g>
+        <g class="fl f1"><path d="M740.5 40C735 52 733 62 735.4 74C736.8 81 744.2 81 745.6 74C748 62 745 52 740.5 40Z" fill="#ff5a1c" filter="url(#fb)"/></g>
+        <g class="fl f2"><path d="M740.5 52C736.8 60 736 67 737.6 75C738.6 79 742.4 79 743.4 75C745 67 744.2 60 740.5 52Z" fill="#ffa02e"/></g>
+        <g class="fl f3"><path d="M740.5 64C738.8 69 738.6 74 739.6 78C740.2 80 740.8 80 741.4 78C742.4 74 742.2 69 740.5 64Z" fill="#fff0c4"/></g>
+        <g class="fl f4"><path d="M740.5 30C739 36 739.4 40 740.5 43C741.6 40 742 36 740.5 30Z" fill="#ff8a2a" filter="url(#fb)"/></g>
+        <circle class="em e1" cx="739" cy="44" r=".9"/><circle class="em e2" cx="742" cy="46" r=".7"/><circle class="em e3" cx="740.5" cy="42" r=".8"/></g></g>
+      ${fog(206, 46, .65)}
       ${layer("l-near", near, "", "M-400 252H1400V700H-400Z")}${fog(236, 30, .95)}
     </svg>`;
   }
