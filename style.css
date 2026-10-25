@@ -859,8 +859,9 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 
 /* nearest station: a soft sweep of the row's colour from the left strip to the right */
 .row.near { position: relative; overflow: hidden; }
-.row.near::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, hsl(var(--h) 85% 55% / .0) 0%, hsl(var(--h) 85% 55% / .32) 38%, hsl(var(--h) 90% 62% / .16) 55%, transparent 75%); transform: translateX(-105%); animation: nearSweep 4.2s cubic-bezier(.45, 0, .25, 1) infinite; will-change: transform; }
-@keyframes nearSweep { 0% { transform: translateX(-105%); opacity: 1; } 55% { transform: translateX(10%); opacity: 1; } 80% { transform: translateX(105%); opacity: 0; } 100% { transform: translateX(105%); opacity: 0; } }
+.row.near::after { content: ""; position: absolute; top: 0; bottom: 0; left: -100%; width: 200%; pointer-events: none; background: repeating-linear-gradient(90deg, hsl(var(--h) 85% 55% / 0) 0%, hsl(var(--h) 88% 58% / .28) 13%, hsl(var(--h) 90% 62% / .12) 24%, hsl(var(--h) 85% 55% / 0) 38%, hsl(var(--h) 85% 55% / 0) 50%); animation: nearSweep 3.6s linear infinite; will-change: transform; }
+/* the pattern repeats every row-width, so the glow flows left to right without ever stopping */
+@keyframes nearSweep { from { transform: translateX(0); } to { transform: translateX(50%); } }
 .neartag { color: hsl(var(--h) 80% 62%); font-weight: 700; }
 
 /* living flare: a ragged industrial flame leaning in the wind, tongues moving out of phase, drifting smoke */
