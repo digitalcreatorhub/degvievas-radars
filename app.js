@@ -172,6 +172,7 @@ Object.assign(I18N.ru, {
   mapEmpty: "На карте нет станций с точной ценой. Переключитесь на «Все заправки».",
   cmpH: "Сравнение заправок", cmpBtn: "Сравнить", cmpAdd: "Добавить к сравнению", cmpRemove: "Убрать из сравнения", cmpMax: "Можно сравнить до 3 заправок", cmpClear: "Сбросить", cmpPrice: "Цена", cmpVsBest: "К лучшей", cmpBest: "Лучшая цена", cmpTank: "Бак", cmpDist: "Расстояние", cmpUpd: "Цена изменена", cmpRel: "Надёжность", cmpOther: "Другое топливо", cmpNeed: "Выберите минимум 2 заправки.",
   relHigh: "Подтверждена сетью", relMid: "От водителей", relLow: "Оценка по сети", relStale: "Возможно устарела", vsAvgLbl: "к средней по списку",
+  nearestTag: "Дёшево рядом",
   mvMap: "Карта", mvBoth: "Вместе", mvList: "Список", onMap: "На карте",
   mapCheapest: "Самая дешёвая", mapHint: "Цвет цены: зелёный дешевле, красный дороже. Пунктир и синий: оценка по минимуму сети.",
   jH: "Журнал заправок", jSub: "Записи хранятся только на этом телефоне.",
@@ -203,6 +204,7 @@ Object.assign(I18N.en, {
   mapEmpty: "No stations with an exact price on the map. Switch to “All stations”.",
   cmpH: "Compare stations", cmpBtn: "Compare", cmpAdd: "Add to comparison", cmpRemove: "Remove from comparison", cmpMax: "You can compare up to 3 stations", cmpClear: "Clear", cmpPrice: "Price", cmpVsBest: "vs best", cmpBest: "Best price", cmpTank: "Tank", cmpDist: "Distance", cmpUpd: "Price changed", cmpRel: "Reliability", cmpOther: "Other fuels", cmpNeed: "Pick at least 2 stations.",
   relHigh: "Confirmed by the chain", relMid: "From drivers", relLow: "Chain-minimum estimate", relStale: "May be outdated", vsAvgLbl: "vs list average",
+  nearestTag: "Cheapest nearby",
   mvMap: "Map", mvBoth: "Split", mvList: "List", onMap: "On map",
   mapCheapest: "Cheapest", mapHint: "Price colour: green is cheaper, red is dearer. Dashed blue: estimate from the chain minimum.",
   jH: "Fill-up log", jSub: "Entries are stored on this phone only.",
@@ -224,6 +226,7 @@ const EXACT_KINDS = new Set(["station", "network", "user"]);
 const USER_MAX_AGE_H = 72;
 const USER_MAX_AGE_BY_FUEL = { lpg: 21 * 24, cng: 21 * 24 };
 const ROAD_FACTOR = 1.3;
+const NEAR_KM = 5;
 const STALE_AFTER_MIN = 20 * 60;
 const RADII = [2, 5, 10, 25];
 
@@ -755,17 +758,27 @@ function renderList(rows, onMap = false) {
   const pool = exactPrices.length ? exactPrices : byPrice.map((r) => r.price);
   const lo = Math.min(...pool), hi = Math.max(...pool);
   const limit = state.showAll ? rows.length : 8;
-  const items = rows.slice(0, limit).map((r, i) => {
+  // the cheapest price among stations close to you (within the chosen radius, or 5 km); ties go to the closer one
+  let nearId = null;
+  if (state.loc) {
+    const reach = state.radius || NEAR_KM;
+    const pool = rows.filter((r) => r.exact && r.dist != null && r.dist <= reach);
+    const pick = (pool.length ? pool : rows.filter((r) => r.dist != null)).reduce((a, b) => (!a || b.price < a.price - 0.0004 || (Math.abs(b.price - a.price) <= 0.0004 && b.dist < a.dist) ? b : a), null);
+    if (pick) nearId = pick.st.id;
+  }
+  let shown = rows.slice(0, limit).map((r, i) => [r, i]);
+  if (nearId && !shown.some(([r]) => r.st.id === nearId)) { const ni = rows.findIndex((r) => r.st.id === nearId); if (ni >= 0) shown.push([rows[ni], ni]); }
+  const items = shown.map(([r, i]) => {
     const chain = state.data.chains[r.st.chain];
     const note = !r.exact
       ? `<span class="note warn">${r.cell.k === "min" ? t("minShort") : kindLabel(r)}</span>`
       : r.cell.k === "user" ? `<span class="note">${kindLabel(r)}</span>` : "";
     const dist = r.dist != null ? `${r.dist.toFixed(1)} ${t("km")}, ` : "";
-    return `<li class="row ${r.exact ? "heat" : "est"}" data-id="${esc(r.st.id)}" style="--i:${Math.min(i, 14)};--h:${heatHue(r.price, lo, hi)}">
+    return `<li class="row ${r.exact ? "heat" : "est"} ${r.st.id === nearId ? "near" : ""}" data-id="${esc(r.st.id)}" style="--i:${Math.min(i, 14)};--h:${heatHue(r.price, lo, hi)}">
       <span class="rank">${i + 1}</span>
       <div class="who"><b><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</b>
         <span>${esc(r.st.address)}</span>${note}
-        <span class="note">${dist}${dayWord(r.cell)}</span></div>
+        <span class="note">${r.st.id === nearId ? `<b class="neartag">◎ ${t("nearestTag")}</b> ` : ""}${dist}${dayWord(r.cell)}</span></div>
       <div class="rp"><b class="hp">${pylonStatic(r.price)}</b>${r.disc > 0 ? `<s class="was">${fmtPrice(r.base)}</s>` : ""}
         <div class="ra">${heartBtn(r.st.id)}${cmpBtn(r.st.id)}${onMap ? `<button class="ra-btn" data-act="onmap" data-v="${esc(r.st.id)}">${ICON.map}${t("onMap")}</button>` : ""}<a href="${linkWaze(r.st)}" target="_blank" rel="noopener">${ICON.nav}${t("navTo")}</a></div>
         <button class="more-prices" data-act="row" data-v="${esc(r.st.id)}" aria-expanded="${state.open === r.st.id}">${t("allPrices")}</button></div>
@@ -1175,19 +1188,19 @@ async function load(bust = false, anim = true, keepBusy = false) {
 
 /* ---------- actions ---------- */
 let geoWatch = null, geoTimer = 0;
-function locate() {
-  if (!navigator.geolocation) { toast(t("locFail")); return; }
+function locate(silent = false) {
+  if (!navigator.geolocation) { if (!silent) toast(t("locFail")); return; }
   if (state.locating) return;
   state.locating = true;
-  toast(t("locating"));
-  buzz(10);
+  if (!silent) { toast(t("locating")); buzz(10); }
   render(false);
   let got = false;
   const finish = (ok) => {
     if (geoWatch != null) navigator.geolocation.clearWatch(geoWatch);
     geoWatch = null; clearTimeout(geoTimer);
     state.locating = false;
-    if (!ok) toast(t("locFail"));
+    if (!ok && !silent) toast(t("locFail"));
+    if (ok) store.set("usedNear", true);
     render(false);
   };
   geoTimer = setTimeout(() => finish(got), 9000);
@@ -1198,7 +1211,7 @@ function locate() {
       got = true;
       state.loc = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
       state.road = true;
-      if (first) buzz(12);
+      if (first && !silent) buzz(12);
       if (pos.coords.accuracy <= 150) { finish(true); } else render(false);
       if (first && state.view === "map" && mapObj) mapObj.flyTo(state.loc.lat, state.loc.lng, 13, 0.5, 700);
     },
@@ -1532,9 +1545,18 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
     return `<svg class="refinery" viewBox="0 0 1000 260" preserveAspectRatio="xMidYMax meet"><defs>
       <linearGradient id="fog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--fog)" stop-opacity="0"/><stop offset=".6" stop-color="var(--fog)" stop-opacity=".9"/><stop offset="1" stop-color="var(--fog)" stop-opacity="1"/></linearGradient>
       <filter id="fb" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation=".9"/></filter><radialGradient id="flare"><stop offset="0" stop-color="#ffb35c" stop-opacity=".7"/><stop offset=".15" stop-color="#ff8a3a" stop-opacity=".35"/><stop offset="1" stop-color="#ff6a2a" stop-opacity="0"/></radialGradient></defs>
-      <circle class="flare-glow" cx="741" cy="112" r="140" fill="url(#flare)"/>
-      ${layer("l-far", far)}${fog(176, 60, .75)}
-      ${layer("l-mid", mid, '<g class="flarestack"><rect x="739.6" y="120" width="1.8" height="112"/><g class="flame"><path d="M740.5 100C737.6 107 736.8 112 738.2 117C739 119.4 742 119.4 742.8 117C744.2 112 743 106 740.5 100Z" fill="#ff9a3a" filter="url(#fb)"/><path d="M740.5 108C739.2 112 739.2 115 740.5 118C741.8 115 741.8 112 740.5 108Z" fill="#fff2cf"/></g></g>')}${fog(206, 46, .65)}
+            ${layer("l-far", far)}${fog(176, 60, .75)}
+      ${layer("l-mid", mid)}<g class="rl l-far flareg"><g transform="translate(-180 0) translate(740.5 232) scale(.78) translate(-740.5 -232)"><circle class="flare-glow" cx="740.5" cy="66" r="120" fill="url(#flare)"/>
+        <circle class="fa" cx="740.5" cy="84" r=".5" fill="none"/><g class="flarestack"><rect x="739.6" y="86" width="1.8" height="146"/><rect x="738" y="86" width="5" height="2"/></g>
+        <g class="smoke"><circle class="sm s1" cx="747" cy="24" r="7"/><circle class="sm s2" cx="750" cy="18" r="9"/><circle class="sm s3" cx="745" cy="26" r="6"/></g>
+        <g class="flm"><g class="fl body"><path d="M733.5 82C731.5 75 735 68 733.6 60C732.6 54 736.6 50 735.4 42C740 47 741 39 745.6 31C745.4 41 752 45 750 53C754.4 51 752.6 61 752.4 67C754.4 73 749.4 78 747.4 82Z" fill="#ff4d12" opacity=".92" filter="url(#fb)"/></g>
+        <g class="fl t1"><path d="M737 81C735 69 738 59 741.5 45C742.5 56 746 66 745 81Z" fill="#ff8a24"/></g>
+        <g class="fl t2"><path d="M742 81C743 71 748 63 757 56C753 66 752 74 749 81Z" fill="#ff7a1c"/></g>
+        <g class="fl t3"><path d="M735.5 81C734.5 75 733.5 71 731.5 68C735.5 68 737.5 73 738.5 81Z" fill="#ff9a30"/></g>
+        <g class="fl t4"><path d="M744 80C746.5 72 751 65 757.5 59C757 68 754 76 749 82Z" fill="#ffb030" opacity=".85"/></g>
+        <g class="fl core"><ellipse cx="741" cy="77.5" rx="4.2" ry="6" fill="#ffd77a"/><ellipse cx="741" cy="79" rx="2.8" ry="3.6" fill="#fff6dc"/></g></g>
+        <circle class="em e1" cx="745" cy="40" r=".9"/><circle class="em e2" cx="749" cy="46" r=".7"/><circle class="em e3" cx="742" cy="38" r=".8"/></g></g>
+      ${fog(206, 46, .65)}
       ${layer("l-near", near, "", "M-400 252H1400V700H-400Z")}${fog(236, 30, .95)}
     </svg>`;
   }
@@ -1552,6 +1574,95 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
     DROP('style="--w:38px;right:12%;top:60vh;--fx:5;--fy:.05;--b:.8px;--r:-5deg;--d:12s"', "far") +
     DROP('style="--w:30px;left:30%;top:46vh;--fx:4;--fy:.04;--b:1px;--r:9deg;--d:13s"', "far");
   document.body.appendChild(scene);
+
+  // Real-looking flare: a small canvas particle fire (additive glowing sprites that rise, cool from white to red,
+  // lean in the wind and lick). The SVG flame stays as the fallback for reduced motion.
+  (() => {
+    if (REDUCE_MOTION) return;
+    const anchor = scene.querySelector(".fa"), svgEl = scene.querySelector(".refinery");
+    if (!anchor || !svgEl) return;
+    const CW = 190, CH = 300, BX = 70, BY = 240, dpr = Math.min(devicePixelRatio || 1, 2);
+    const cv = document.createElement("canvas");
+    cv.className = "flame-cv"; cv.width = CW * dpr; cv.height = CH * dpr;
+    cv.style.width = CW + "px"; cv.style.height = CH + "px";
+    const ctx = cv.getContext("2d");
+    if (!ctx) return;
+    scene.insertBefore(cv, svgEl);   // behind the skyline, so the haze and the dark plant stand in front of it
+    scene.classList.add("live-flame");
+    const stops = [[0, [255, 240, 190]], [.1, [255, 214, 120]], [.34, [255, 150, 40]], [.64, [232, 70, 14]], [1, [100, 22, 8]]];
+    const colour = (t) => {
+      for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) {
+        const [t0, c0] = stops[i - 1], [t1, c1] = stops[i], k = (t - t0) / (t1 - t0);
+        return c0.map((v, j) => Math.round(v + (c1[j] - v) * k));
+      }
+      return stops[stops.length - 1][1];
+    };
+    const N = 32;
+    const sprites = Array.from({ length: N }, (_, i) => {
+      const c = document.createElement("canvas"); c.width = c.height = 64;
+      const g = c.getContext("2d"), [r, gg, b] = colour(i / (N - 1));
+      const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, `rgba(${r},${gg},${b},1)`); gr.addColorStop(.35, `rgba(${r},${gg},${b},.55)`); gr.addColorStop(1, `rgba(${r},${gg},${b},0)`);
+      g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+      return c;
+    });
+    const parts = [], smoke = [];
+    let last = 0, boost = 0, nextBurst = 0.6, smokeAcc = 0, spawnAcc = 0, show = true;
+    const rnd = Math.random;
+    function frame(now) {
+      requestAnimationFrame(frame);
+      const dt = Math.min(.05, (now - last) / 1000); last = now;
+      if (dt <= 0) return;
+      const r = anchor.getBoundingClientRect();
+      show = r.left > -120 && r.left < innerWidth + 120 && r.top > -200 && r.top < innerHeight + 60;
+      cv.style.display = show ? "" : "none";
+      if (!show) return;
+      const k = Math.max(.5, svgEl.getBoundingClientRect().width / 1000) * .78;
+      cv.style.transform = `translate(${(r.left + r.width / 2 - BX).toFixed(1)}px,${(r.top + r.height / 2 - BY + 2).toFixed(1)}px)`;
+      const t = now / 1000, light = document.documentElement.dataset.theme === "light";
+      nextBurst -= dt; if (nextBurst <= 0) { boost = 1; nextBurst = .5 + rnd() * 1.4; }
+      boost = Math.max(0, boost - dt * 2.2);
+      const rate = 170 * (1 + boost * .9);
+      spawnAcc += rate * dt;
+      while (spawnAcc >= 1) {
+        spawnAcc--;
+        parts.push({ x: BX + (rnd() - .5) * 14 * k, y: BY - rnd() * 4 * k, vx: (rnd() - .5) * 26 * k, vy: -(48 + rnd() * 62 + boost * 40) * k, life: .6 + rnd() * .8, age: 0, size: (6 + rnd() * 6) * k, ph: rnd() * 6.28 });
+      }
+      smokeAcc += dt;
+      if (smokeAcc > .22) { smokeAcc = 0; smoke.push({ x: BX + 10 * k, y: BY - 82 * k, vx: (14 + rnd() * 10) * k, vy: -(14 + rnd() * 10) * k, life: 2.6 + rnd(), age: 0, size: (7 + rnd() * 4) * k }); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, CW, CH);
+      ctx.globalCompositeOperation = "source-over";
+      for (let i = smoke.length - 1; i >= 0; i--) {
+        const p = smoke[i]; p.age += dt;
+        if (p.age >= p.life) { smoke.splice(i, 1); continue; }
+        const u = p.age / p.life;
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        ctx.globalAlpha = Math.sin(u * Math.PI) * (light ? .16 : .1);
+        const s = p.size * (1 + u * 2.4);
+        ctx.fillStyle = light ? "#3a2412" : "#2a1a0e";
+        ctx.beginPath(); ctx.arc(p.x, p.y, s, 0, 6.283); ctx.fill();
+      }
+      ctx.globalCompositeOperation = light ? "source-over" : "lighter";
+      // hot base glow
+      ctx.globalAlpha = (.085 + .035 * Math.sin(t * 9) + .03 * Math.sin(t * 23 + 1)) * (1 + boost * .3);
+      const bs = 20 * k * (1 + boost * .25);
+      ctx.drawImage(sprites[2], BX - bs, BY - bs * .9, bs * 2, bs * 2);
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i]; p.age += dt;
+        if (p.age >= p.life) { parts.splice(i, 1); continue; }
+        const u = p.age / p.life;
+        p.vy *= 1 - .35 * dt;
+        p.x += (p.vx + (46 + Math.sin(t * 3.1 + p.ph) * 22) * u * k + Math.sin(t * 9 + p.ph * 3) * 34 * u * k) * dt;
+        p.y += p.vy * dt;
+        const s = p.size * (1.15 - u * .9) * 2.4;
+        ctx.globalAlpha = Math.pow(1 - u, 1.2) * (light ? .15 : .075);
+        ctx.drawImage(sprites[Math.min(N - 1, Math.floor(u * (N - 1)))], p.x - s / 2, p.y - s / 2, s, s);
+      }
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    }
+    requestAnimationFrame(frame);
+  })();
   const root = scene.style;  // set on the scene only, so scrolling does not restyle the whole page
   let raf = 0, sy = 0, px = 0, py = 0;
   const apply = () => { raf = 0; root.setProperty("--sy", sy); root.setProperty("--px", px.toFixed(3)); root.setProperty("--py", py.toFixed(3)); };
@@ -1614,3 +1725,5 @@ if ("serviceWorker" in navigator) {
 }
 applyTheme();
 load();
+// if the person has used "Near me" before and the permission is still granted, locate quietly so the nearest station is marked
+if (store.get("usedNear", false) && navigator.permissions?.query) navigator.permissions.query({ name: "geolocation" }).then((r) => { if (r.state === "granted") locate(true); }).catch(() => {});

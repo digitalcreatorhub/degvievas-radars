@@ -1,5 +1,5 @@
 /* Degvielas Radars service worker: app shell offline, data network-first. */
-const VERSION = "v18";
+const VERSION = "v27";
 // The preview (/next/) and the main site share one origin, so each keeps its own cache names.
 const PREFIX = self.location.pathname.includes("/next/") ? "drn" : "dr";
 const SHELL = `${PREFIX}-shell-${VERSION}`;
