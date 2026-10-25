@@ -759,7 +759,9 @@ function renderList(rows, onMap = false) {
   const limit = state.showAll ? rows.length : 8;
   let nearId = null;
   if (state.loc) { let bd = Infinity; for (const r of rows) if (r.dist != null && r.dist < bd) { bd = r.dist; nearId = r.st.id; } }
-  const items = rows.slice(0, limit).map((r, i) => {
+  let shown = rows.slice(0, limit).map((r, i) => [r, i]);
+  if (nearId && !shown.some(([r]) => r.st.id === nearId)) { const ni = rows.findIndex((r) => r.st.id === nearId); if (ni >= 0) shown.push([rows[ni], ni]); }
+  const items = shown.map(([r, i]) => {
     const chain = state.data.chains[r.st.chain];
     const note = !r.exact
       ? `<span class="note warn">${r.cell.k === "min" ? t("minShort") : kindLabel(r)}</span>`
@@ -1179,19 +1181,19 @@ async function load(bust = false, anim = true, keepBusy = false) {
 
 /* ---------- actions ---------- */
 let geoWatch = null, geoTimer = 0;
-function locate() {
-  if (!navigator.geolocation) { toast(t("locFail")); return; }
+function locate(silent = false) {
+  if (!navigator.geolocation) { if (!silent) toast(t("locFail")); return; }
   if (state.locating) return;
   state.locating = true;
-  toast(t("locating"));
-  buzz(10);
+  if (!silent) { toast(t("locating")); buzz(10); }
   render(false);
   let got = false;
   const finish = (ok) => {
     if (geoWatch != null) navigator.geolocation.clearWatch(geoWatch);
     geoWatch = null; clearTimeout(geoTimer);
     state.locating = false;
-    if (!ok) toast(t("locFail"));
+    if (!ok && !silent) toast(t("locFail"));
+    if (ok) store.set("usedNear", true);
     render(false);
   };
   geoTimer = setTimeout(() => finish(got), 9000);
@@ -1202,7 +1204,7 @@ function locate() {
       got = true;
       state.loc = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
       state.road = true;
-      if (first) buzz(12);
+      if (first && !silent) buzz(12);
       if (pos.coords.accuracy <= 150) { finish(true); } else render(false);
       if (first && state.view === "map" && mapObj) mapObj.flyTo(state.loc.lat, state.loc.lng, 13, 0.5, 700);
     },
@@ -1716,3 +1718,5 @@ if ("serviceWorker" in navigator) {
 }
 applyTheme();
 load();
+// if the person has used "Near me" before and the permission is still granted, locate quietly so the nearest station is marked
+if (store.get("usedNear", false) && navigator.permissions?.query) navigator.permissions.query({ name: "geolocation" }).then((r) => { if (r.state === "granted") locate(true); }).catch(() => {});
