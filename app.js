@@ -173,7 +173,7 @@ Object.assign(I18N.ru, {
   cmpH: "Сравнение заправок", cmpBtn: "Сравнить", cmpAdd: "Добавить к сравнению", cmpRemove: "Убрать из сравнения", cmpMax: "Можно сравнить до 3 заправок", cmpClear: "Сбросить", cmpPrice: "Цена", cmpVsBest: "К лучшей", cmpBest: "Лучшая цена", cmpTank: "Бак", cmpDist: "Расстояние", cmpUpd: "Цена изменена", cmpRel: "Надёжность", cmpOther: "Другое топливо", cmpNeed: "Выберите минимум 2 заправки.",
   relHigh: "Подтверждена сетью", relMid: "От водителей", relLow: "Оценка по сети", relStale: "Возможно устарела", vsAvgLbl: "к средней по списку",
   nearestTag: "Дёшево рядом",
-  soundSet: "Звук при запуске", driveSet: "Подсказки по пути",
+  soundSet: "Звук подсказки по пути", driveSet: "Подсказки по пути",
   driveHelp: "Пока приложение открыто на экране, подскажу, если вы проезжаете рядом с дешёвой заправкой. В фоне и при выключенном экране браузер не даёт следить за местом.",
   driveOn: "Подсказки по пути включены", driveOff: "Подсказки по пути выключены", driveNoGeo: "Нужен доступ к геолокации",
   tipH: "Рядом дешёвая заправка", tipDiff: "ниже средней рядом на",
@@ -209,7 +209,7 @@ Object.assign(I18N.en, {
   cmpH: "Compare stations", cmpBtn: "Compare", cmpAdd: "Add to comparison", cmpRemove: "Remove from comparison", cmpMax: "You can compare up to 3 stations", cmpClear: "Clear", cmpPrice: "Price", cmpVsBest: "vs best", cmpBest: "Best price", cmpTank: "Tank", cmpDist: "Distance", cmpUpd: "Price changed", cmpRel: "Reliability", cmpOther: "Other fuels", cmpNeed: "Pick at least 2 stations.",
   relHigh: "Confirmed by the chain", relMid: "From drivers", relLow: "Chain-minimum estimate", relStale: "May be outdated", vsAvgLbl: "vs list average",
   nearestTag: "Cheapest nearby",
-  soundSet: "Sound on launch", driveSet: "Tips along the way",
+  soundSet: "Sound for tips along the way", driveSet: "Tips along the way",
   driveHelp: "While the app is open on screen I will tell you when you pass a cheap station. Browsers do not allow tracking location in the background or with the screen off.",
   driveOn: "Tips along the way are on", driveOff: "Tips along the way are off", driveNoGeo: "Location access is needed",
   tipH: "Cheap station nearby", tipDiff: "below the local average by",
@@ -1395,10 +1395,10 @@ app.addEventListener("change", (e) => {
   if (act === "road") { state.road = el.checked; render(false); }
   if (act === "jfull") state.jf.full = el.checked;
   if (act === "haptics") { state.haptics = el.checked; store.set("haptics", el.checked); if (el.checked) buzz(15); }
-  if (act === "sound") { state.sound = el.checked; store.set("sound", el.checked); if (el.checked) { chimed = false; startupSound(true); } }
+  if (act === "sound") { state.sound = el.checked; store.set("sound", el.checked); if (el.checked) tipChime(); }
   if (act === "drive") {
     state.drive = el.checked; store.set("drive", el.checked);
-    if (el.checked) { if (!navigator.geolocation) { toast(t("driveNoGeo")); el.checked = false; state.drive = false; store.set("drive", false); } else { driveStart(); toast(t("driveOn")); } }
+    if (el.checked) { if (!navigator.geolocation) { toast(t("driveNoGeo")); el.checked = false; state.drive = false; store.set("drive", false); } else { ensureAudio(); driveStart(); toast(t("driveOn")); } }
     else { driveStop(); toast(t("driveOff")); }
   }
   if (act === "usedisc") { state.useDisc = el.checked; store.set("useDisc", el.checked); }
@@ -1742,53 +1742,32 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (reloadOnUpdate) location.reload(); });
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 }
-/* ---------- startup sound (synthesised, nothing to download) ---------- */
-let actx = null, chimed = false;
-function playChime() {
-  if (!state.sound || !actx || actx.state !== "running") return false;
-  try {
-    const t0 = actx.currentTime + .02, out = actx.createGain();
-    out.gain.value = .2; out.connect(actx.destination);
-    const noise = (dur) => {
-      const b = actx.createBuffer(1, Math.ceil(actx.sampleRate * dur), actx.sampleRate), d = b.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      const n = actx.createBufferSource(); n.buffer = b; return n;
-    };
-    // 1) a soft nozzle click
-    const click = noise(.03), cf = actx.createBiquadFilter(), cg = actx.createGain();
-    cf.type = "bandpass"; cf.frequency.value = 2200; cg.gain.setValueAtTime(.5, t0); cg.gain.exponentialRampToValueAtTime(.001, t0 + .03);
-    click.connect(cf); cf.connect(cg); cg.connect(out); click.start(t0);
-    // 2) fuel flowing: filtered noise that opens up and fades
-    const flow = noise(.6), ff = actx.createBiquadFilter(), fg = actx.createGain();
-    ff.type = "lowpass"; ff.frequency.setValueAtTime(260, t0 + .05); ff.frequency.exponentialRampToValueAtTime(1500, t0 + .5);
-    fg.gain.setValueAtTime(.0001, t0 + .05); fg.gain.linearRampToValueAtTime(.22, t0 + .3); fg.gain.exponentialRampToValueAtTime(.001, t0 + .62);
-    flow.connect(ff); ff.connect(fg); fg.connect(out); flow.start(t0 + .05);
-    // 3) warm engine-like swell
-    const eng = actx.createOscillator(), eg = actx.createGain();
-    eng.type = "sawtooth"; eng.frequency.setValueAtTime(70, t0 + .05); eng.frequency.exponentialRampToValueAtTime(150, t0 + .55);
-    const lp = actx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 380;
-    eg.gain.setValueAtTime(.0001, t0 + .05); eg.gain.linearRampToValueAtTime(.16, t0 + .3); eg.gain.exponentialRampToValueAtTime(.001, t0 + .7);
-    eng.connect(lp); lp.connect(eg); eg.connect(out); eng.start(t0 + .05); eng.stop(t0 + .75);
-    // 4) the "ready" chime: two soft bell tones
-    [[784, .42], [1175, .5]].forEach(([f, at]) => {
-      const o = actx.createOscillator(), g = actx.createGain();
-      o.type = "sine"; o.frequency.value = f;
-      g.gain.setValueAtTime(.0001, t0 + at); g.gain.linearRampToValueAtTime(.34, t0 + at + .02); g.gain.exponentialRampToValueAtTime(.001, t0 + at + 1.1);
-      o.connect(g); g.connect(out); o.start(t0 + at); o.stop(t0 + at + 1.2);
-    });
-    return true;
-  } catch { return false; }
-}
-function startupSound(force = false) {
+/* ---------- sound for the "cheap station nearby" tip (synthesised, clean bell tones) ---------- */
+let actx = null;
+function ensureAudio() {
   const AC = window.AudioContext || window.webkitAudioContext;
-  if (!AC || !state.sound || (chimed && !force)) return;
-  try { actx = actx || new AC(); } catch { return; }
-  const attempt = () => { if (!chimed || force) { if (playChime()) chimed = true; } };
-  actx.resume().then(attempt).catch(() => {});
-  setTimeout(attempt, 300);
-  // browsers may keep sound locked until the first touch; then play it
-  const arm = () => { actx.resume().then(attempt).catch(() => {}); };
-  addEventListener("pointerdown", arm, { once: true, passive: true });
+  if (!AC || actx) return;
+  try { actx = new AC(); } catch { return; }
+  // browsers keep sound locked until the first touch; unlock it then
+  addEventListener("pointerdown", () => { actx && actx.resume && actx.resume().catch(() => {}); }, { once: true, passive: true });
+}
+function tipChime() {
+  if (!state.sound) return;
+  ensureAudio();
+  if (!actx) return;
+  const go = () => {
+    try {
+      const t0 = actx.currentTime + .02, out = actx.createGain();
+      out.gain.value = .22; out.connect(actx.destination);
+      [[659, 0], [880, .16], [1319, .32]].forEach(([f, at]) => {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(.0001, t0 + at); g.gain.linearRampToValueAtTime(.45, t0 + at + .015); g.gain.exponentialRampToValueAtTime(.001, t0 + at + .9);
+        o.connect(g); g.connect(out); o.start(t0 + at); o.stop(t0 + at + 1);
+      });
+    } catch { /* ignore */ }
+  };
+  if (actx.state === "running") go(); else actx.resume().then(go).catch(() => {});
 }
 
 /* ---------- tips along the way: only while the app is open on screen ---------- */
@@ -1796,6 +1775,7 @@ let driveWatch = null;
 function driveStop() { if (driveWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(driveWatch); driveWatch = null; }
 function driveStart() {
   if (!state.drive || !navigator.geolocation || driveWatch != null) return;
+  ensureAudio();
   driveWatch = navigator.geolocation.watchPosition(onDrivePos, () => {}, { enableHighAccuracy: false, maximumAge: 8000, timeout: 20000 });
 }
 function onDrivePos(pos) {
@@ -1821,6 +1801,7 @@ function onDrivePos(pos) {
   if (Date.now() - (seen[near.st.id] || 0) < 2 * 3600e3) return;
   seen[near.st.id] = Date.now(); store.set("tips", seen);
   showTip(near, avg);
+  tipChime();
 }
 let tipTimer = 0;
 function showTip(n, avg) {
@@ -1839,7 +1820,6 @@ function showTip(n, avg) {
 
 applyTheme();
 load();
-startupSound();
 driveStart();
 // if the person has used "Near me" before and the permission is still granted, locate quietly so the nearest station is marked
 if (store.get("usedNear", false) && navigator.permissions?.query) navigator.permissions.query({ name: "geolocation" }).then((r) => { if (r.state === "granted") locate(true); }).catch(() => {});
