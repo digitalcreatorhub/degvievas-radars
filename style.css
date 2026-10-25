@@ -913,3 +913,6 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 .row.heat { background: linear-gradient(90deg, hsl(var(--h) 72% 42% / .3), hsl(var(--h) 72% 42% / .1) 16%, transparent 30%); }
 .row.est { background: linear-gradient(90deg, hsl(var(--h) 66% 40% / .2), hsl(var(--h) 66% 40% / .06) 14%, transparent 26%); }
 .row.near::after { background: repeating-linear-gradient(90deg, hsl(var(--h) 85% 55% / 0) 0%, hsl(var(--h) 88% 58% / .3) 7%, hsl(var(--h) 90% 62% / .12) 13%, hsl(var(--h) 85% 55% / 0) 21%, hsl(var(--h) 85% 55% / 0) 50%); }
+
+/* the left strip is equally bright on every row, estimates included */
+.row.heat, .row.est { box-shadow: inset 4px 0 0 hsl(var(--h) 85% 58%), inset 14px 0 14px -10px hsl(var(--h) 85% 55% / .55); }
