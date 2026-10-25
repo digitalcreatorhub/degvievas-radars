@@ -1636,7 +1636,7 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
       }
       ctx.globalCompositeOperation = light ? "source-over" : "lighter";
       // hot base glow
-      ctx.globalAlpha = (.17 + .07 * Math.sin(t * 9) + .06 * Math.sin(t * 23 + 1)) * (1 + boost * .3);
+      ctx.globalAlpha = (.085 + .035 * Math.sin(t * 9) + .03 * Math.sin(t * 23 + 1)) * (1 + boost * .3);
       const bs = 20 * k * (1 + boost * .25);
       ctx.drawImage(sprites[2], BX - bs, BY - bs * .9, bs * 2, bs * 2);
       for (let i = parts.length - 1; i >= 0; i--) {
@@ -1647,7 +1647,7 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
         p.x += (p.vx + (46 + Math.sin(t * 3.1 + p.ph) * 22) * u * k + Math.sin(t * 9 + p.ph * 3) * 34 * u * k) * dt;
         p.y += p.vy * dt;
         const s = p.size * (1.15 - u * .9) * 2.4;
-        ctx.globalAlpha = Math.pow(1 - u, 1.2) * (light ? .3 : .15);
+        ctx.globalAlpha = Math.pow(1 - u, 1.2) * (light ? .15 : .075);
         ctx.drawImage(sprites[Math.min(N - 1, Math.floor(u * (N - 1)))], p.x - s / 2, p.y - s / 2, s, s);
       }
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
