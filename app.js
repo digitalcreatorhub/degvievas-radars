@@ -4,6 +4,8 @@
 
 const I18N = {
   ru: {
+    heat: "Тепловая карта цен",
+    sortPrice: "Цена", sortNear: "Рядом", sortFresh: "Свежие", retry: "Повторить",
     title: "Degvielas Radars",
     refresh: "Обновить",
     theme: "Сменить тему",
@@ -77,6 +79,8 @@ const I18N = {
     day: "дн.",
   },
   en: {
+    heat: "Price heat map",
+    sortPrice: "Price", sortNear: "Nearest", sortFresh: "Freshest", retry: "Retry",
     title: "Degvielas Radars",
     refresh: "Refresh",
     theme: "Switch theme",
@@ -152,7 +156,7 @@ const I18N = {
 };
 
 Object.assign(I18N.ru, {
-  navPrices: "Цены", navMap: "Карта", navJournal: "Журнал",
+  navPrices: "Цены", navMap: "Карта", navStats: "Анализ", navJournal: "Журнал",
   settings: "Настройки", language: "Язык", themeLabel: "Тема", dark: "Тёмная", light: "Светлая",
   haptics: "Вибрация при нажатиях", close: "Закрыть",
   discH: "Мои скидки", discHelp: "Скидка по карте лояльности, цент на литр. Цены в списке и на карте станут уже со скидкой.",
@@ -180,7 +184,7 @@ Object.assign(I18N.ru, {
   resetLoc: "Сбросить место", refreshed: "Обновлено, данные от", locWait: "Уточняю…",
 });
 Object.assign(I18N.en, {
-  navPrices: "Prices", navMap: "Map", navJournal: "Log",
+  navPrices: "Prices", navMap: "Map", navStats: "Insights", navJournal: "Log",
   settings: "Settings", language: "Language", themeLabel: "Theme", dark: "Dark", light: "Light",
   haptics: "Vibrate on taps", close: "Close",
   discH: "My discounts", discHelp: "Loyalty-card discount in cents per litre. Prices in the list and on the map will already include it.",
@@ -253,6 +257,10 @@ const state = {
   installed: false,
   data: null, history: null, oil: null,
   mapMode: store.get("mapmode", "all"),
+  fpm: store.get("fpm", 4),
+  trendRange: "30",
+  heat: false,
+  sort: "price",
   baseline: store.get("snap", null),
 };
 let installPrompt = null;
@@ -264,7 +272,7 @@ const t = (k) => I18N[state.lang][k];
 function applyTheme() {
   document.documentElement.dataset.theme = state.theme;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = state.theme === "light" ? "#edefec" : "#16181a";
+  if (meta) meta.content = state.theme === "light" ? "#f2ece2" : "#050403";
 }
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -299,6 +307,8 @@ const ICON = {
   prices: svg('<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/>', 22),
   map: svg('<path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>', 22),
   journal: svg('<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22.5z"/><path d="M4 4.5v18"/><path d="M9 7h7M9 11h7"/>', 22),
+  stats: svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', 22),
+  heat: svg('<path d="M12 2c3 4 6 6 6 11a6 6 0 0 1-12 0c0-2 1-3 2-4 .3 2 1 3 2 3 0-4-1-6 2-10z"/>'),
   trash: svg('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>', 18),
   radar: `<svg class="radar" width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
     <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5"/>
@@ -565,6 +575,14 @@ function fuelTabs() {
   return `<div class="fuels" role="group">${fuels.map((f) => `<button class="fuel" data-act="fuel" data-v="${f}" aria-pressed="${state.fuel === f}">${t("fuels")[f]}</button>`).join("")}</div>`;
 }
 
+function tileSpark(f) {
+  const h = state.history;
+  if (!h || !window.Charts) return "";
+  const vals = Object.keys(h.days).sort().slice(-14).map((d) => h.days[d]?.[state.city]?.[f]?.min).filter((v) => v != null);
+  if (vals.length < 2) return "";
+  return `<span class="ts">${Charts.sparkline(vals, vals[vals.length - 1] > vals[0])}</span>`;
+}
+
 function renderBoard() {
   const fuels = presentFuels();
   const tiles = BOARD_FUELS.map((f, i) => {
@@ -578,6 +596,7 @@ function renderBoard() {
       <span class="tf">${t("fuels")[f]}</span>
       <span class="tp">${rollPrice(r.price, "tile" + f, "bp")}</span>
       <span class="tc"><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</span>
+      ${tileSpark(f)}
       <span class="td ${dcls}" ${ch ? `title="${ch.src === "visit" ? t("sinceVisit") : t("vsYest")}"` : ""}>${ch ? `${ch.delta < 0 ? "▼" : "▲"} ${(Math.abs(ch.delta) * 100).toFixed(1)}` : "&nbsp;"}</span>
     </button>`;
   }).join("");
@@ -695,10 +714,21 @@ function renderFavs() {
   return `<h2>♥ ${t("favs")}</h2><div class="favrow">${inner}</div>`;
 }
 
+function sortedRows(rows) {
+  if (state.sort === "near" && state.loc) return [...rows].sort((a, b) => (a.dist ?? 9e9) - (b.dist ?? 9e9) || a.price - b.price);
+  if (state.sort === "fresh") return [...rows].sort((a, b) => (a.cell.ago ?? 9e9) - (b.cell.ago ?? 9e9) || a.price - b.price);
+  return rows;
+}
+function renderSort() {
+  const opts = [["price", t("sortPrice")], ["near", t("sortNear")], ["fresh", t("sortFresh")]];
+  return `<div class="seg slim sort" role="group">${opts.map(([k, l]) => `<button data-act="sort" data-v="${k}" aria-pressed="${(state.sort === k && (k !== "near" || state.loc)) ? "true" : "false"}">${l}</button>`).join("")}</div>`;
+}
 function renderList(rows) {
   if (!rows.length) return "";
-  const exactPrices = rows.filter((r) => r.exact).map((r) => r.price);
-  const pool = exactPrices.length ? exactPrices : rows.map((r) => r.price);
+  const byPrice = rows;
+  rows = sortedRows(rows);
+  const exactPrices = byPrice.filter((r) => r.exact).map((r) => r.price);
+  const pool = exactPrices.length ? exactPrices : byPrice.map((r) => r.price);
   const lo = Math.min(...pool), hi = Math.max(...pool);
   const limit = state.showAll ? rows.length : 8;
   const items = rows.slice(0, limit).map((r, i) => {
@@ -707,7 +737,7 @@ function renderList(rows) {
       ? `<span class="note warn">${r.cell.k === "min" ? t("minShort") : kindLabel(r)}</span>`
       : r.cell.k === "user" ? `<span class="note">${kindLabel(r)}</span>` : "";
     const dist = r.dist != null ? `${r.dist.toFixed(1)} ${t("km")}, ` : "";
-    return `<li class="row ${r.exact ? "heat" : "est"}" style="--i:${Math.min(i, 14)};--h:${heatHue(r.price, lo, hi)}">
+    return `<li class="row ${r.exact ? "heat" : "est"}" data-id="${esc(r.st.id)}" style="--i:${Math.min(i, 14)};--h:${heatHue(r.price, lo, hi)}">
       <span class="rank">${i + 1}</span>
       <div class="who"><b><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</b>
         <span>${esc(r.st.address)}</span>${note}
@@ -720,6 +750,7 @@ function renderList(rows) {
   }).join("");
   return `
   <h2>${t("stationsH")}</h2><p class="sub">${rows.length} ${t("withPrice")}</p>
+  ${renderSort()}
   <ol class="list" style="padding:0">${items}</ol>
   ${rows.length > 8 ? `<button class="more" data-act="more">${state.showAll ? t("showLess") : `${t("showAll")} ${rows.length}`}</button>` : ""}`;
 }
@@ -805,7 +836,7 @@ function renderPrices() {
   const rows = rowsFor();
   return `${renderInstall()}
     <div class="left">${renderBoard()}${renderHero(rows)}${renderCalc(rows)}</div>
-    <div class="right">${renderFilters()}${renderFavs()}${renderList(rows)}${renderChains()}${renderTrend()}${renderOil()}</div>`;
+    <div class="right">${renderFilters()}${renderFavs()}${renderList(rows)}<div class="rv">${renderChains()}</div><div class="rv">${renderTrend()}</div><div class="rv">${renderOil()}</div></div>`;
 }
 
 /* ---------- map view ---------- */
@@ -836,6 +867,7 @@ function renderMapView() {
         <p class="addr">${esc(st.address)}</p>
         <div class="mp-price"><span class="pp">${rollPrice(cell.p - disc, "pop", "bp")}</span><span class="u">€/L</span>
           <span class="tag ${exact ? "good" : "warn"}">${kindLabel(row)}</span></div>
+        ${(() => { const pc = exact ? cheaperThanPct({ exact, price: cell.p - disc }) : null; return pc == null ? "" : Charts.meter(pc, state.lang === "ru" ? `Дешевле, чем у ${pc}% станций` : `Cheaper than ${pc}% of stations`); })()}
         <div class="actions">
           <a class="btn" href="${linkWaze(st)}" target="_blank" rel="noopener">${t("waze")}</a>
           <a class="btn ghost" href="${linkGmaps(st)}" target="_blank" rel="noopener">${t("gmaps")}</a>
@@ -859,6 +891,7 @@ function renderMapView() {
       <button data-act="mfit" aria-label="${t("mapFit")}">${ICON.fit}</button>
       <button data-act="mme" class="${state.loc ? "on" : ""}" aria-label="${t("mapMe")}">${ICON.near}</button>
     </div>
+    <div class="mm-ctl left"><button data-act="mheat" class="${state.heat ? "on" : ""}" aria-label="${t("heat")}" title="${t("heat")}" aria-pressed="${state.heat}">${ICON.heat}</button></div>
     ${rows.length ? "" : `<div class="mm-empty">${t("mapEmpty")}</div>`}
     ${pop}
   </div>
@@ -891,8 +924,8 @@ function attachMap() {
     return {
       id: r.st.id, lat: r.st.lat, lng: r.st.lng, prio: r.exact ? i : 1000 + i, force: sel || (i === 0 && r.exact),
       cls: `${sel ? "sel " : ""}${i === 0 && r.exact ? "best " : ""}${r.exact ? "" : "est"}`.trim(),
-      html: `<span class="pin" style="--h:${hue};--c:${esc(chain.color)}"><i class="pdot"></i><b>${fmtPrice(r.price)}</b></span>`,
-      dotHtml: `<span class="pin mini" style="--h:${hue};--c:${esc(chain.color)}"></span>`,
+      html: state.heat && !sel ? `<span class="blob" style="--h:${hue}"></span>` : `<span class="pin" style="--h:${hue};--c:${esc(chain.color)}"><i class="pdot"></i><b>${fmtPrice(r.price)}</b></span>`,
+      dotHtml: state.heat && !sel ? `<span class="blob" style="--h:${hue}"></span>` : `<span class="pin mini" style="--h:${hue};--c:${esc(chain.color)}"></span>`,
     };
   });
   if (state.loc) list.push({ id: "__me", lat: state.loc.lat, lng: state.loc.lng, prio: -1, force: true, noPick: true, cls: "me", html: '<span class="me-dot"></span>', dotHtml: '<span class="me-dot"></span>' });
@@ -911,6 +944,24 @@ function pickStation(id) {
 }
 
 /* ---------- journal view ---------- */
+function journalCharts(s) {
+  if (!window.Charts || state.journal.length < 2) return "";
+  const ru = state.lang === "ru";
+  const byMonth = new Map();
+  for (const e of state.journal) { const m = e.t.slice(0, 7); byMonth.set(m, (byMonth.get(m) || 0) + e.l * e.ppl); }
+  const months = [...byMonth.keys()].sort().slice(-6);
+  const MN = ru ? ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const items = months.map((m) => ({ label: MN[+m.slice(5) - 1], v: byMonth.get(m), tip: `${MN[+m.slice(5) - 1]} ${m.slice(0, 4)}: ${byMonth.get(m).toFixed(2)} €` }));
+  let out = `<h3>${ru ? "Траты по месяцам" : "Spending by month"}</h3>${Charts.columns({ items, fmt: (v) => v.toFixed(0) })}`;
+  const cons = s.newest.filter((e) => s.cons[e.id] != null).reverse();
+  if (cons.length >= 2) {
+    out += `<h3>${ru ? "Расход топлива" : "Consumption"}</h3>${Charts.line({ id: "cons", labels: cons.map((e) => e.t.slice(8, 10) + "." + e.t.slice(5, 7)), fmt: (v) => v.toFixed(1),
+      hint: ru ? "Проведите по графику, чтобы увидеть расход по заправкам." : "Drag across the chart to read each fill-up.",
+      series: [{ key: "c", name: ru ? "л/100 км" : "l/100 km", color: "#ffc247", vals: cons.map((e) => s.cons[e.id]), area: true }] })}`;
+  }
+  return out;
+}
+
 function renderJournal() {
   const s = journalStats();
   const f = state.jf;
@@ -931,6 +982,7 @@ function renderJournal() {
   return `<section class="jview">
     <h2 style="margin-top:20px">${t("jH")}</h2><p class="sub">${t("jSub")}</p>
     ${cards}${per100}
+    <div class="rv">${journalCharts(s)}</div>
     ${s.avgCons != null ? `<button class="chip" data-act="jusecons">${t("jUse")} (${s.avgCons.toFixed(1)})</button>` : ""}
     <form class="jform" data-act="jform" novalidate>
       <div class="field"><label for="jd">${t("jDate")}</label><input id="jd" type="date" data-act="jf" data-v="date" value="${esc(f.date)}"></div>
@@ -973,7 +1025,7 @@ function renderSheet() {
 
 let navShown = 0;
 function renderNav() {
-  const items = [["prices", ICON.prices, t("navPrices")], ["map", ICON.map, t("navMap")], ["journal", ICON.journal, t("navJournal")]];
+  const items = [["prices", ICON.prices, t("navPrices")], ["map", ICON.map, t("navMap")], ["stats", ICON.stats, t("navStats")], ["journal", ICON.journal, t("navJournal")]];
   const idx = items.findIndex((i) => i[0] === state.view);
   return `<nav class="bnav" style="--idx:${navShown}" data-idx="${idx}" aria-label="Menu"><span class="ind"></span>${items.map(([v, ic, label]) =>
     `<button data-act="nav" data-v="${v}" ${state.view === v ? 'aria-current="page"' : ""}>${ic}<span>${label}</span></button>`).join("")}</nav>`;
@@ -999,15 +1051,18 @@ function render(anim = true) {
     if (present.length && !present.includes(state.fuel)) state.fuel = present[0];
   }
   let body;
-  if (!state.data) body = state.loading ? renderSkeleton() : `<div class="empty"><b>${t("noDataH")}</b>${t("noDataT")}</div>`;
+  if (!state.data) body = state.loading ? renderSkeleton() : `<div class="empty"><b>${t("noDataH")}</b>${t("noDataT")}<button class="btn retry" data-act="refresh">${t("retry")}</button></div>`;
   else if (!state.data.stations.length) body = `<div class="empty"><b>${t("noDataH")}</b>${t("noDataT")}</div>`;
   else if (state.view === "map") body = renderMapView();
+  else if (state.view === "stats") body = renderStats();
   else if (state.view === "journal") body = renderJournal();
   else body = renderPrices();
   app.innerHTML = `<div class="wrap v-${state.view} ${anim ? "enter" : ""}">${renderHeader()}${body}
     <footer class="foot"><p>${t("source")}</p></footer></div>${renderNav()}${state.sheet ? renderSheet() : ""}`;
   document.body.classList.toggle("noscroll", state.sheet);
   if (state.data && state.view === "map") attachMap();
+  if (window.Charts) Charts.bindScrub(app, CHART_FMT);
+  observeReveals();
   settleRolls();
   const navEl = app.querySelector(".bnav");
   if (navEl) { const to = +navEl.dataset.idx; requestAnimationFrame(() => requestAnimationFrame(() => navEl.style.setProperty("--idx", to))); navShown = to; }
@@ -1091,15 +1146,24 @@ async function refreshNow() {
     toast(`${t("refreshed")} ${hhmm}`);
   }
 }
+const VIEW_ORDER = ["prices", "map", "stats", "journal"];
 function setView(v) {
   if (state.view === v) return;
-  state.view = v;
-  state.sheet = false;
-  state.selected = null;
-  rolled.clear();
+  const dir = VIEW_ORDER.indexOf(v) > VIEW_ORDER.indexOf(state.view) ? "fwd" : "back";
+  const apply = () => {
+    state.view = v;
+    state.sheet = false;
+    state.selected = null;
+    rolled.clear();
+    render(true);
+    window.scrollTo(0, 0);
+  };
   buzz(6);
-  render(true);
-  window.scrollTo(0, 0);
+  if (document.startViewTransition && !REDUCE_MOTION) {
+    document.documentElement.dataset.vt = dir;
+    const vt = document.startViewTransition(apply);
+    vt.finished.finally(() => { delete document.documentElement.dataset.vt; });
+  } else apply();
 }
 async function shareStation(id) {
   const st = stationById(id);
@@ -1141,6 +1205,8 @@ function csvText() {
 
 /* ---------- events ---------- */
 app.addEventListener("click", (e) => {
+  const tipEl = e.target.closest("[data-tip]");
+  if (tipEl && tipEl.dataset.tip) { toast(tipEl.dataset.tip); buzz(8); return; }
   const el = e.target.closest("[data-act]");
   if (!el || el.tagName === "SELECT" || el.tagName === "INPUT" || el.tagName === "FORM") return;
   if (el.dataset.act !== "row" && el.dataset.act !== "share" && e.target.closest("a")) return;
@@ -1154,6 +1220,13 @@ app.addEventListener("click", (e) => {
     case "settheme": state.theme = v; store.set("theme", v); applyTheme(); render(false); return;
     case "refresh": refreshNow(); return;
     case "fuel": state.fuel = v; store.set("fuel", v); state.showAll = false; state.open = null; buzz(8); break;
+    case "sort":
+      if (v === "near" && !state.loc) { state.sort = "near"; locate(); return; }
+      state.sort = v; buzz(8); flip(() => render(false)); return;
+    case "goarea": state.area = v; state.view = "prices"; state.showAll = false; mapFitKey = ""; rolled.clear(); buzz(10); render(true); window.scrollTo(0, 0); return;
+    case "gocity": state.city = v; store.set("city", v); state.area = null; state.chain = null; state.view = "prices"; mapFitKey = ""; rolled.clear(); buzz(10); render(true); window.scrollTo(0, 0); return;
+    case "trange": state.trendRange = v; anim = true; break;
+    case "mheat": state.heat = !state.heat; buzz(8); anim = false; break;
     case "mapmode": state.mapMode = v; store.set("mapmode", v); anim = false; break;
     case "mode": state.mode = v; store.set("mode", v); break;
     case "area": state.area = v || null; state.showAll = false; mapFitKey = ""; break;
@@ -1215,9 +1288,19 @@ app.addEventListener("input", (e) => {
     store.set("disc", state.disc);
     return;
   }
+  if (act === "fpm" && n > 0) { state.fpm = n; store.set("fpm", n); updateSavings(); return; }
   if (act === "liters" && n > 0) { state.liters = n; store.set("liters", n); render(false); }
   if (act === "cons" && n > 0) { state.consumption = n; store.set("consumption", n); render(false); }
 });
+function spotlight(e) {
+  const g = e.target.closest && e.target.closest(".tile,.fav,.ins,.sum,.oil>div,.jstats>div,.save-card,.cta,.jform");
+  if (!g) return;
+  const r = g.getBoundingClientRect();
+  g.style.setProperty("--mx", e.clientX - r.left + "px");
+  g.style.setProperty("--my", e.clientY - r.top + "px");
+}
+app.addEventListener("pointermove", spotlight, { passive: true });
+app.addEventListener("pointerdown", spotlight, { passive: true });
 app.addEventListener("submit", (e) => { e.preventDefault(); addFill(); });
 window.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.sheet) { state.sheet = false; render(false); } });
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; if (state.data) render(false); });
@@ -1228,6 +1311,204 @@ document.addEventListener("visibilitychange", () => {
     if (ageMin > 15) load(true, false); else render(false);
   }
 });
+
+/* ---------- motion layer: orbs, parallax, 3D tilt, scroll reveal, FLIP ---------- */
+const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
+(function motion() {
+  const scene = document.createElement("div");
+  scene.className = "scene"; scene.setAttribute("aria-hidden", "true");
+  let dropN = 0;
+  const DROP = (n, cls) => {
+    const k = "d" + dropN++;
+    const P = "M50 2C55 24 90 52 90 87A40 40 0 0 1 10 87C10 52 45 24 50 2Z";
+    return `<svg class="drop ${cls}" viewBox="0 0 100 130" ${n}><defs>
+      <radialGradient id="${k}b" cx=".42" cy=".7" r=".72"><stop offset="0" stop-color="#050302" stop-opacity=".97"/><stop offset=".6" stop-color="#150c05" stop-opacity=".92"/><stop offset=".9" stop-color="#8a4a12" stop-opacity=".75"/><stop offset="1" stop-color="#ffc06a" stop-opacity=".9"/></radialGradient>
+      <linearGradient id="${k}s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00e5c3" stop-opacity=".0"/><stop offset=".35" stop-color="#00e5c3" stop-opacity=".35"/><stop offset=".65" stop-color="#ff7ab8" stop-opacity=".3"/><stop offset="1" stop-color="#ffb02e" stop-opacity=".0"/></linearGradient>
+      <radialGradient id="${k}g" cx=".5" cy="1" r=".75"><stop offset="0" stop-color="#ff9d1a" stop-opacity=".8"/><stop offset="1" stop-color="#ff9d1a" stop-opacity="0"/></radialGradient>
+      <clipPath id="${k}c"><path d="${P}"/></clipPath>
+      <filter id="${k}f" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+      <path d="${P}" fill="url(#${k}b)"/>
+      <g clip-path="url(#${k}c)"><ellipse cx="30" cy="120" rx="30" ry="22" fill="#ff7a1a" opacity=".3" filter="url(#${k}f)"/><ellipse cx="72" cy="122" rx="28" ry="20" fill="#ffd166" opacity=".26" filter="url(#${k}f)"/><ellipse cx="50" cy="128" rx="40" ry="24" fill="url(#${k}g)"/>
+        <ellipse cx="33" cy="76" rx="6" ry="22" transform="rotate(12 33 76)" fill="#fff" opacity=".42" filter="url(#${k}f)"/></g>
+      <path d="${P}" fill="none" stroke="#ffd9a0" stroke-opacity=".5" stroke-width="1.2"/>
+      <ellipse cx="40" cy="52" rx="2.2" ry="3.4" transform="rotate(26 40 52)" fill="#fff" opacity=".7"/></svg>`;
+  };
+  // Deterministic pseudo-random so the skyline is the same on every load
+  const rng = (seed) => () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  function skyline(seed, G, sc, density, W = 1000, far = false) {
+    const r = rng(seed), R = (a, b) => a + (b - a) * r();
+    let fill = "", line = "", lights = "";
+    const f = (v) => v.toFixed(1);
+    const rect = (x, y, w, h) => `M${f(x)} ${f(y)}h${f(w)}v${f(h)}h${f(-w)}z`;
+    const lattice = (x, yTop, yBot, w, step) => {
+      let d = `M${f(x)} ${f(yBot)}V${f(yTop)}M${f(x + w)} ${f(yBot)}V${f(yTop)}`, up = true;
+      for (let y = yBot; y > yTop + step; y -= step) { d += `M${f(up ? x : x + w)} ${f(y)}L${f(up ? x + w : x)} ${f(y - step)}`; up = !up; }
+      return d;
+    };
+    const drum = (x, y, w, h) => { fill += `M${f(x + h / 2)} ${f(y)}h${f(w - h)}a${f(h / 2)} ${f(h / 2)} 0 0 1 0 ${f(h)}h${f(-(w - h))}a${f(h / 2)} ${f(h / 2)} 0 0 1 0 ${f(-h)}z`; };
+    // A distillation column: stepped body, dome, vent, platforms with railings, caged ladder
+    const column = (x, w, h) => {
+      const w2 = w * R(.7, .88), x2 = x + (w - w2) / 2, split = h * R(.42, .6);
+      fill += rect(x, G - split, w, split) + rect(x2, G - h + 3 * sc, w2, h - split - 3 * sc);
+      fill += `M${f(x)} ${f(G - split)}L${f(x2)} ${f(G - split - 3 * sc)}H${f(x2 + w2)}L${f(x + w)} ${f(G - split)}Z`;
+      fill += `M${f(x2)} ${f(G - h + 3 * sc)}Q${f(x2 + w2 / 2)} ${f(G - h - 3.5 * sc)} ${f(x2 + w2)} ${f(G - h + 3 * sc)}Z`;
+      fill += rect(x2 + w2 / 2 - .7 * sc, G - h - 10 * sc, 1.4 * sc, 8 * sc);
+      if (!far) {
+        for (let y = G - h * .9; y < G - 8 * sc; y += R(12, 21) * sc) {
+          const lower = y > G - split, ww = lower ? w : w2, xx = lower ? x : x2;
+          fill += rect(xx - 2.6 * sc, y, ww + 5.2 * sc, 1.3 * sc);
+          line += `M${f(xx - 2.6 * sc)} ${f(y)}v${f(-2.6 * sc)}h${f(ww + 5.2 * sc)}v${f(2.6 * sc)}`;
+        }
+        if (r() < .85) line += lattice(r() < .5 ? x - 5 * sc : x + w + .5 * sc, G - h * .86, G - 2 * sc, 4.5 * sc, 4.6 * sc);
+      }
+      return { cx: x + w / 2, top: G - h, w };
+    };
+    const frame = (x, w, h) => { // steel structure with drums on top
+      const bay = R(9, 14) * sc; let d = "";
+      for (let px = x; px <= x + w + .1; px += bay) d += `M${f(px)} ${G}V${f(G - h)}`;
+      const lv = R(13, 19) * sc; let k = 0;
+      for (let y = G - lv; y > G - h; y -= lv, k++) {
+        d += `M${f(x)} ${f(y)}H${f(x + w)}`;
+        for (let px = x, j = 0; px + bay <= x + w + .1; px += bay, j++) d += (j + k) % 2 ? `M${f(px)} ${f(y + lv)}L${f(px + bay)} ${f(y)}` : `M${f(px + bay)} ${f(y + lv)}L${f(px)} ${f(y)}`;
+      }
+      d += `M${f(x)} ${f(G - h)}H${f(x + w)}`; line += d;
+      fill += rect(x, G - h - 1.6 * sc, w, 1.6 * sc);
+      const nd = 1 + Math.floor(r() * 2); let dx = x + 2 * sc;
+      for (let i = 0; i < nd && dx < x + w - 14 * sc; i++) { const dw = R(16, 28) * sc, dh = R(6, 9) * sc; drum(dx, G - h - 1.6 * sc - dh, dw, dh); dx += dw + 3 * sc; }
+    };
+    let x = -20;
+    while (x < W + 20) {
+      const pick = far ? (r() < .45 ? .1 : r() < .6 ? .7 : .9) : r();
+      if (pick < .4) { // tower group with pipe runs
+        const n = 2 + Math.floor(r() * 3), cols = []; let cx = x;
+        for (let i = 0; i < n; i++) { const w = R(11, 25) * sc, h = R(78, 172) * sc * (far ? .8 : 1); cols.push(column(cx, w, h)); cx += w + R(5, 11) * sc; }
+        if (!far) for (let i = 1; i < cols.length; i++) {
+          const a_ = cols[i - 1], b_ = cols[i], y1 = Math.max(a_.top, b_.top) + R(14, 40) * sc, px = (a_.cx + a_.w / 2 + b_.cx - b_.w / 2) / 2;
+          fill += rect(px - 1.1 * sc, y1, 2.2 * sc, G - y1);
+          line += `M${f(a_.cx + a_.w / 2)} ${f(y1 + 3 * sc)}H${f(px)}M${f(px)} ${f(y1 + 3 * sc)}H${f(b_.cx - b_.w / 2)}`;
+          if (r() < .6) line += `M${f(a_.cx)} ${f(a_.top + 5 * sc)}V${f(a_.top - 4 * sc)}H${f(b_.cx)}V${f(b_.top - 8 * sc)}`;
+        }
+        x = cx + R(0, 8) * sc;
+      } else if (pick < .62 && !far) { // steel structure
+        const w = R(34, 72) * sc, h = R(48, 98) * sc; frame(x, w, h); x += w + R(0, 8) * sc;
+      } else if (pick < .72) { // tanks
+        const n = 1 + Math.floor(r() * 3); let cx = x;
+        for (let i = 0; i < n; i++) { const w = R(34, 70) * sc, h = R(18, 34) * sc; fill += `M${f(cx)} ${G}V${f(G - h)}Q${f(cx + w / 2)} ${f(G - h - 8 * sc)} ${f(cx + w)} ${f(G - h)}V${G}Z`; if (!far) line += `M${f(cx + w)} ${f(G - h)}l${f(3 * sc)} 0v${f(h)}M${f(cx + w * .1)} ${f(G - h * .9)}L${f(cx + w * .9)} ${f(G - 2)}`; cx += w + R(3, 9) * sc; }
+        x = cx + R(0, 6) * sc;
+      } else if (pick < .8) { // exchangers
+        const n = 2 + Math.floor(r() * 2); let cy = G;
+        const w = R(26, 44) * sc, h = R(6, 9) * sc;
+        for (let i = 0; i < n; i++) { cy -= h + 4 * sc; drum(x, cy, w, h); fill += rect(x + w * .2, cy + h, 1.8 * sc, 4 * sc) + rect(x + w * .75, cy + h, 1.8 * sc, 4 * sc); }
+        fill += rect(x + w * .2, G - 2, 1.8 * sc, 2) ; x += w + R(2, 10) * sc;
+      } else if (pick < .87) { // spheres
+        const rad = R(11, 19) * sc, cy = G - rad - 9 * sc;
+        fill += `M${f(x)} ${f(cy)}a${f(rad)} ${f(rad)} 0 1 0 ${f(rad * 2)} 0a${f(rad)} ${f(rad)} 0 1 0 ${f(-rad * 2)} 0Z`;
+        line += `M${f(x + rad * .5)} ${f(cy + rad * .8)}L${f(x + rad * .3)} ${G}M${f(x + rad * 1.5)} ${f(cy + rad * .8)}L${f(x + rad * 1.7)} ${G}M${f(x + rad)} ${f(cy + rad)}V${G}`;
+        x += rad * 2 + R(2, 12) * sc;
+      } else if (pick < .94) { // tall stack with bands
+        const w = R(6, 10) * sc, h = R(150, 215) * sc;
+        fill += `M${f(x)} ${G}L${f(x + w * .22)} ${f(G - h)}H${f(x + w * .78)}L${f(x + w)} ${G}Z`;
+        for (let y = G - h + 6 * sc; y < G - 10; y += R(24, 38) * sc) fill += rect(x + w * .1, y, w * .8, 2.2 * sc);
+        if (!far) line += lattice(x + w + .8 * sc, G - h * .8, G - 2 * sc, 3.6 * sc, 4.2 * sc);
+        if (density > .5) lights += `<circle class="warn" cx="${f(x + w / 2)}" cy="${f(G - h - 2)}" r="${f(.9 * sc + .3)}"/>`;
+        x += w + R(8, 22) * sc;
+      } else { // cooling towers
+        const w = R(40, 64) * sc, h = R(56, 88) * sc;
+        fill += `M${f(x)} ${G}C${f(x + w * .25)} ${f(G - h * .45)} ${f(x + w * .2)} ${f(G - h * .72)} ${f(x + w * .1)} ${f(G - h)}H${f(x + w * .9)}C${f(x + w * .8)} ${f(G - h * .72)} ${f(x + w * .75)} ${f(G - h * .45)} ${f(x + w)} ${G}Z`;
+        if (far) for (let i = 0; i < 3; i++) { const pr = (9 + i * 5) * sc; fill += `M${f(x + w * .5 - pr)} ${f(G - h - 6 * sc - i * 12 * sc)}a${f(pr)} ${f(pr * .62)} 0 1 0 ${f(pr * 2)} 0a${f(pr)} ${f(pr * .62)} 0 1 0 ${f(-pr * 2)} 0Z`; }
+        x += w + R(2, 14) * sc;
+      }
+    }
+    // pipe rack along the base and a low plinth
+    if (!far) {
+      for (let px = -10; px < W; px += 230) {
+        const w = R(120, 210) * sc, y = G - 14 * sc;
+        fill += rect(px, y, w, 2 * sc) + rect(px, y + 5 * sc, w, 1.6 * sc);
+        for (let k = px; k < px + w; k += 20 * sc) { fill += rect(k, y, 1.8 * sc, G - y); line += `M${f(k)} ${f(y + 6 * sc)}L${f(k + 20 * sc)} ${G}`; }
+      }
+    }
+    fill += rect(-60, G - 3 * sc, W + 120, 3 * sc);
+    if (density > .6) for (let i = 0; i < 30; i++) lights += `<circle class="lt" cx="${f(R(0, W))}" cy="${f(G - R(4, 90) * sc)}" r=".7"/>`;
+    return { fill, line, lights };
+  }
+  function buildRefinery() {
+    const far = skyline(11, 214, .6, .5, 1000, true), mid = skyline(27, 233, .78, .65), near = skyline(5, 253, 1.05, .85);
+    const layer = (cls, o, extra = "", ground = "") => `<g class="rl ${cls}"><path d="${ground}${o.fill}" class="rf"/><path d="${o.line}" class="rs" fill="none"/>${o.lights}${extra}</g>`;
+    const fog = (y, h, o) => `<rect x="-300" y="${y}" width="1600" height="${h}" fill="url(#fog)" opacity="${o}"/>`;
+    return `<svg class="refinery" viewBox="0 0 1000 260" preserveAspectRatio="xMidYMax meet"><defs>
+      <linearGradient id="fog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--fog)" stop-opacity="0"/><stop offset=".6" stop-color="var(--fog)" stop-opacity=".9"/><stop offset="1" stop-color="var(--fog)" stop-opacity="1"/></linearGradient>
+      <filter id="fb" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation=".9"/></filter><radialGradient id="flare"><stop offset="0" stop-color="#ffb35c" stop-opacity=".7"/><stop offset=".15" stop-color="#ff8a3a" stop-opacity=".35"/><stop offset="1" stop-color="#ff6a2a" stop-opacity="0"/></radialGradient></defs>
+      <circle class="flare-glow" cx="741" cy="112" r="140" fill="url(#flare)"/>
+      ${layer("l-far", far)}${fog(176, 60, .75)}
+      ${layer("l-mid", mid, '<g class="flarestack"><rect x="739.6" y="120" width="1.8" height="112"/><g class="flame"><path d="M740.5 100C737.6 107 736.8 112 738.2 117C739 119.4 742 119.4 742.8 117C744.2 112 743 106 740.5 100Z" fill="#ff9a3a" filter="url(#fb)"/><path d="M740.5 108C739.2 112 739.2 115 740.5 118C741.8 115 741.8 112 740.5 108Z" fill="#fff2cf"/></g></g>')}${fog(206, 46, .65)}
+      ${layer("l-near", near, "", "M-400 252H1400V700H-400Z")}${fog(236, 30, .95)}
+    </svg>`;
+  }
+  const refinery = buildRefinery();
+  scene.innerHTML = `<div class="haze"></div>` + refinery + `<div class="ground"></div>` +
+    DROP('style="--w:230px;left:-96px;top:34vh;--fx:46;--fy:.5;--b:2.2px;--r:-14deg;--d:7s"', "near") +
+    DROP('style="--w:200px;right:-60px;top:10vh;--fx:-40;--fy:.42;--b:1.8px;--r:12deg;--d:9s"', "near") +
+    DROP('style="--w:104px;left:66%;top:36vh;--fx:20;--fy:.2;--b:0px;--r:6deg;--d:8s"', "mid") +
+    DROP('style="--w:80px;left:6%;top:30vh;--fx:16;--fy:.16;--b:0px;--r:-8deg;--d:10s"', "mid") +
+    DROP('style="--w:48px;left:42%;top:19vh;--fx:7;--fy:.07;--b:.6px;--r:4deg;--d:11s"', "far") +
+    DROP('style="--w:38px;right:12%;top:60vh;--fx:5;--fy:.05;--b:.8px;--r:-5deg;--d:12s"', "far") +
+    DROP('style="--w:30px;left:30%;top:46vh;--fx:4;--fy:.04;--b:1px;--r:9deg;--d:13s"', "far");
+  document.body.appendChild(scene);
+  const root = scene.style;  // set on the scene only, so scrolling does not restyle the whole page
+  let raf = 0, sy = 0, px = 0, py = 0;
+  const apply = () => { raf = 0; root.setProperty("--sy", sy); root.setProperty("--px", px.toFixed(3)); root.setProperty("--py", py.toFixed(3)); };
+  const queue = () => { if (!raf) raf = requestAnimationFrame(apply); };
+  addEventListener("scroll", () => { sy = scrollY; queue(); }, { passive: true });
+  addEventListener("pointermove", (e) => { px = (e.clientX / innerWidth - .5) * 2; py = (e.clientY / innerHeight - .5) * 2; queue(); }, { passive: true });
+  // 3D tilt on the hero card and favourites, with a spring release (the CSS transition does the springing)
+  const tiltSel = ".pylon,.fav,.save-card";
+  const tilt = (e) => {
+    const el = e.target.closest && e.target.closest(tiltSel);
+    if (!el || e.pointerType === "touch" && e.type === "pointermove" && !el.matches(":active")) return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+    el.style.setProperty("--ry", (x * 10).toFixed(2) + "deg");
+    el.style.setProperty("--rx", (-y * 8).toFixed(2) + "deg");
+    el.classList.add("tilting");
+  };
+  const untilt = (e) => {
+    const el = e.target.closest && e.target.closest(tiltSel);
+    if (!el) return;
+    el.classList.remove("tilting");
+    el.style.removeProperty("--ry"); el.style.removeProperty("--rx");
+  };
+  if (!REDUCE_MOTION) {
+    app.addEventListener("pointermove", tilt, { passive: true });
+    app.addEventListener("pointerdown", tilt, { passive: true });
+    app.addEventListener("pointerout", untilt, { passive: true });
+    app.addEventListener("pointerup", untilt, { passive: true });
+    app.addEventListener("pointercancel", untilt, { passive: true });
+  }
+})();
+// Sections start paused (.rv) and play once scrolled into view
+let rvObs = null;
+function observeReveals() {
+  if (rvObs) rvObs.disconnect();
+  const els = app.querySelectorAll(".rv");
+  if (!("IntersectionObserver" in window)) { els.forEach((e) => e.classList.add("in")); return; }
+  rvObs = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); rvObs.unobserve(e.target); } }), { rootMargin: "0px 0px -10% 0px" });
+  els.forEach((e) => rvObs.observe(e));
+}
+/* FLIP: remember where list rows are, run fn (re-render), then animate rows from their old spot */
+function flip(fn) {
+  const first = new Map();
+  app.querySelectorAll(".list .row[data-id]").forEach((el) => first.set(el.dataset.id, el.getBoundingClientRect().top));
+  fn();
+  if (REDUCE_MOTION) return;
+  app.querySelectorAll(".list .row[data-id]").forEach((el, i) => {
+    const was = first.get(el.dataset.id);
+    el.style.animation = "none";
+    if (was == null) { el.animate([{ opacity: 0, transform: "translateY(18px)" }, { opacity: 1, transform: "none" }], { duration: 450, delay: i * 25, easing: "cubic-bezier(.16,1,.3,1)", fill: "backwards" }); return; }
+    const dy = was - el.getBoundingClientRect().top;
+    if (Math.abs(dy) < 1) return;
+    el.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }], { duration: 650, easing: "cubic-bezier(.34,1.4,.5,1)" });
+  });
+}
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (reloadOnUpdate) location.reload(); });
