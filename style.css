@@ -859,7 +859,7 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 
 /* nearest station: a soft sweep of the row's colour from the left strip to the right */
 .row.near { position: relative; overflow: hidden; }
-.row.near::after { content: ""; position: absolute; top: 0; bottom: 0; left: -100%; width: 200%; pointer-events: none; background: repeating-linear-gradient(90deg, hsl(var(--h) 85% 55% / 0) 0%, hsl(var(--h) 88% 58% / .28) 13%, hsl(var(--h) 90% 62% / .12) 24%, hsl(var(--h) 85% 55% / 0) 38%, hsl(var(--h) 85% 55% / 0) 50%); animation: nearSweep 3.6s linear infinite; will-change: transform; }
+.row.near::after { content: ""; position: absolute; top: 0; bottom: 0; left: -100%; width: 200%; pointer-events: none; background: repeating-linear-gradient(90deg, hsl(var(--h) 85% 50% / .12) 0%, hsl(var(--h) 90% 52% / .6) 14%, hsl(var(--h) 92% 56% / .34) 28%, hsl(var(--h) 85% 50% / .12) 44%, hsl(var(--h) 85% 50% / .12) 50%); animation: nearSweep 3.6s linear infinite; will-change: transform; }
 /* the pattern repeats every row-width, so the glow flows left to right without ever stopping */
 @keyframes nearSweep { from { transform: translateX(0); } to { transform: translateX(50%); } }
 .neartag { color: hsl(var(--h) 80% 62%); font-weight: 700; }
