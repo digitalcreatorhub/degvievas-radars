@@ -1320,39 +1320,87 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let dropN = 0;
   const DROP = (n, cls) => {
     const k = "d" + dropN++;
-    const P = "M50 3C50 3 9 58 9 86a41 41 0 0 0 82 0C91 58 50 3 50 3Z";
+    const P = "M50 2C55 24 90 52 90 87A40 40 0 0 1 10 87C10 52 45 24 50 2Z";
     return `<svg class="drop ${cls}" viewBox="0 0 100 130" ${n}><defs>
-      <radialGradient id="${k}b" cx=".4" cy=".66" r=".7"><stop offset="0" stop-color="#6a4fc0"/><stop offset=".45" stop-color="#1c1642"/><stop offset="1" stop-color="#07070f"/></radialGradient>
-      <linearGradient id="${k}r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00e5c3"/><stop offset=".5" stop-color="#9a8bff"/><stop offset="1" stop-color="#ffb02e"/></linearGradient>
-      <radialGradient id="${k}g" cx=".5" cy="1" r=".7"><stop offset="0" stop-color="#ffb02e" stop-opacity=".95"/><stop offset="1" stop-color="#ffb02e" stop-opacity="0"/></radialGradient></defs>
-      <path d="${P}" fill="url(#${k}b)"/><path d="${P}" fill="none" stroke="url(#${k}r)" stroke-width="3"/>
-      <path d="M20 94a31 31 0 0 0 60 0c-8 16-22 24-30 24s-22-8-30-24z" fill="url(#${k}g)" opacity=".8"/>
-      <ellipse cx="34" cy="78" rx="7" ry="17" transform="rotate(14 34 78)" fill="#fff" opacity=".6"/><circle cx="43" cy="49" r="3.4" fill="#fff" opacity=".8"/></svg>`;
+      <radialGradient id="${k}b" cx=".42" cy=".7" r=".72"><stop offset="0" stop-color="#0b0a1c" stop-opacity=".92"/><stop offset=".62" stop-color="#17133a" stop-opacity=".78"/><stop offset=".9" stop-color="#6b57c9" stop-opacity=".62"/><stop offset="1" stop-color="#b9a8ff" stop-opacity=".8"/></radialGradient>
+      <linearGradient id="${k}s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00e5c3" stop-opacity=".0"/><stop offset=".35" stop-color="#00e5c3" stop-opacity=".35"/><stop offset=".65" stop-color="#ff7ab8" stop-opacity=".3"/><stop offset="1" stop-color="#ffb02e" stop-opacity=".0"/></linearGradient>
+      <radialGradient id="${k}g" cx=".5" cy="1" r=".75"><stop offset="0" stop-color="#ffb02e" stop-opacity=".7"/><stop offset="1" stop-color="#ffb02e" stop-opacity="0"/></radialGradient>
+      <clipPath id="${k}c"><path d="${P}"/></clipPath>
+      <filter id="${k}f" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+      <path d="${P}" fill="url(#${k}b)"/>
+      <g clip-path="url(#${k}c)"><ellipse cx="30" cy="120" rx="30" ry="22" fill="#00e5c3" opacity=".18" filter="url(#${k}f)"/><ellipse cx="72" cy="122" rx="28" ry="20" fill="#ff7ab8" opacity=".18" filter="url(#${k}f)"/><ellipse cx="50" cy="128" rx="40" ry="24" fill="url(#${k}g)"/>
+        <ellipse cx="33" cy="76" rx="6" ry="22" transform="rotate(12 33 76)" fill="#fff" opacity=".42" filter="url(#${k}f)"/></g>
+      <path d="${P}" fill="none" stroke="#c9bcff" stroke-opacity=".34" stroke-width="1.2"/>
+      <ellipse cx="40" cy="52" rx="2.2" ry="3.4" transform="rotate(26 40 52)" fill="#fff" opacity=".7"/></svg>`;
   };
-  const refinery = `<svg class="refinery" viewBox="0 0 600 230" preserveAspectRatio="xMidYMax meet"><defs><linearGradient id="silGrad" x1="0" y1="0" x2="0" y2="1"><stop class="sa" offset="0"/><stop class="sb" offset="1"/></linearGradient><radialGradient id="flareGlow"><stop offset="0" stop-color="#ff9a3a" stop-opacity=".6"/><stop offset="1" stop-color="#ff9a3a" stop-opacity="0"/></radialGradient></defs>
-    <circle class="flare-glow" cx="502" cy="56" r="60" fill="url(#flareGlow)"/>
-    <g fill="url(#silGrad)" stroke="rgba(255,176,46,.28)" stroke-width=".8">
-      <rect x="-300" y="198" width="1200" height="500"/>
-      <path d="M10 200V174Q10 166 18 166H60Q68 166 68 174V200Z"/><path d="M76 200V180Q76 172 82 172H124Q130 172 130 180V200Z"/>
-      <rect x="150" y="72" width="20" height="128" rx="3"/><ellipse cx="160" cy="72" rx="10" ry="5"/>
-      <rect x="178" y="98" width="16" height="102" rx="3"/><ellipse cx="186" cy="98" rx="8" ry="4"/>
-      <rect x="202" y="62" width="22" height="138" rx="3"/><ellipse cx="213" cy="62" rx="11" ry="5"/>
-      <rect x="130" y="142" width="238" height="4"/><rect x="130" y="154" width="238" height="3"/>
-      <rect x="140" y="146" width="3" height="54"/><rect x="196" y="146" width="3" height="54"/><rect x="250" y="146" width="3" height="54"/><rect x="330" y="146" width="3" height="54"/>
-      <path d="M262 200L274 130Q294 120 314 130L326 200Z"/>
-      <circle cx="372" cy="172" r="22"/><rect x="358" y="186" width="3" height="14"/><rect x="383" y="186" width="3" height="14"/>
-      <circle cx="414" cy="177" r="17"/><rect x="404" y="190" width="3" height="10"/><rect x="421" y="190" width="3" height="10"/>
-      <path d="M440 200L445 38H451L456 200Z"/>
-      <rect x="499" y="62" width="5" height="138"/><rect x="494" y="120" width="15" height="3"/>
-      <rect x="526" y="112" width="16" height="88" rx="2"/><rect x="548" y="134" width="22" height="66" rx="2"/><rect x="576" y="164" width="24" height="36"/>
-    </g>
-    <g fill="rgba(255,255,255,.07)"><rect x="148" y="96" width="24" height="3"/><rect x="148" y="124" width="24" height="3"/><rect x="200" y="90" width="26" height="3"/><rect x="200" y="120" width="26" height="3"/><rect x="200" y="152" width="26" height="3"/></g>
-    <g class="steam" fill="rgba(255,255,255,.12)"><ellipse cx="294" cy="112" rx="18" ry="9"/><ellipse cx="302" cy="94" rx="24" ry="11" style="animation-delay:-3s"/><ellipse cx="290" cy="74" rx="28" ry="12" style="animation-delay:-6s"/></g>
-    <g class="wins" fill="#ffb02e"><circle cx="160" cy="110" r="1.4"/><circle cx="160" cy="132" r="1.4"/><circle cx="186" cy="124" r="1.4"/><circle cx="213" cy="84" r="1.4"/><circle cx="213" cy="132" r="1.4"/><circle cx="534" cy="130" r="1.4"/><circle cx="559" cy="150" r="1.4"/><circle cx="588" cy="176" r="1.4"/><circle cx="40" cy="186" r="1.4"/></g>
-    <circle class="blink" cx="448" cy="35" r="2.6" fill="#ff4d4d"/><circle class="blink b2" cx="213" cy="58" r="2" fill="#ff4d4d"/>
-    <g transform="translate(502 58)"><g class="flame"><path d="M0 0C-7-8-6-17 0-30 2-20 8-14 6-6 5-2 2 0 0 0Z" fill="#ff8a1f"/><path d="M0 0C-3-5-3-10 0-17 2-11 4-7 3-3 2-1 1 0 0 0Z" fill="#ffe27a"/></g></g>
-  </svg>`;
-  scene.innerHTML = `<div class="haze"></div>` + refinery +
+  // Deterministic pseudo-random so the skyline is the same on every load
+  const rng = (seed) => () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  function skyline(seed, G, sc, density, W = 1000) {
+    const r = rng(seed), R = (a, b) => a + (b - a) * r();
+    let fill = "", line = "", lights = "";
+    const f = (v) => v.toFixed(1);
+    const column = (x, w, h) => {
+      const rr = Math.min(w / 2, 4);
+      fill += `M${f(x)} ${G}V${f(G - h + rr)}Q${f(x)} ${f(G - h)} ${f(x + rr)} ${f(G - h)}H${f(x + w - rr)}Q${f(x + w)} ${f(G - h)} ${f(x + w)} ${f(G - h + rr)}V${G}Z`;
+      for (let y = G - h * .85; y < G - 8; y += R(14, 26) * sc) fill += `M${f(x - 2 * sc)} ${f(y)}h${f(w + 4 * sc)}v${f(1.6 * sc)}h${f(-(w + 4 * sc))}z`;
+      if (h > 60 * sc) line += `M${f(x + w + 1)} ${f(G - h * .9)}V${G}`;
+    };
+    let x = -20;
+    while (x < W + 20) {
+      const pick = r();
+      if (pick < .26) { // column group joined by a bridge
+        const n = 2 + Math.floor(r() * 3); let cx = x, tops = [];
+        for (let i = 0; i < n; i++) { const w = R(9, 20) * sc, h = R(60, 150) * sc; column(cx, w, h); tops.push([cx + w / 2, G - h * R(.5, .8)]); cx += w + R(3, 8) * sc; }
+        for (let i = 1; i < tops.length; i++) line += `M${f(tops[i - 1][0])} ${f(tops[i - 1][1])}L${f(tops[i][0])} ${f(tops[i][1] - R(0, 6))}`;
+        x = cx + R(8, 30) * sc;
+      } else if (pick < .44) { // storage tanks
+        const n = 1 + Math.floor(r() * 3); let cx = x;
+        for (let i = 0; i < n; i++) { const w = R(34, 72) * sc, h = R(18, 36) * sc; fill += `M${f(cx)} ${G}V${f(G - h)}Q${f(cx + w / 2)} ${f(G - h - 9 * sc)} ${f(cx + w)} ${f(G - h)}V${G}Z`; line += `M${f(cx + w * .15)} ${f(G - h * .9)}L${f(cx + w * .85)} ${f(G - 2)}`; cx += w + R(5, 14) * sc; }
+        x = cx + R(6, 24) * sc;
+      } else if (pick < .54) { // gas spheres
+        const rad = R(11, 19) * sc; const cy = G - rad - 9 * sc;
+        fill += `M${f(x)} ${f(cy)}a${f(rad)} ${f(rad)} 0 1 0 ${f(rad * 2)} 0a${f(rad)} ${f(rad)} 0 1 0 ${f(-rad * 2)} 0Z`;
+        line += `M${f(x + rad * .5)} ${f(cy + rad * .8)}L${f(x + rad * .3)} ${G}M${f(x + rad * 1.5)} ${f(cy + rad * .8)}L${f(x + rad * 1.7)} ${G}`;
+        x += rad * 2 + R(8, 26) * sc;
+      } else if (pick < .64) { // tall stack
+        const w = R(5, 9) * sc, h = R(150, 205) * sc;
+        fill += `M${f(x)} ${G}L${f(x + w * .22)} ${f(G - h)}H${f(x + w * .78)}L${f(x + w)} ${G}Z`;
+        if (density > .5) lights += `<circle class="warn" cx="${f(x + w / 2)}" cy="${f(G - h - 2)}" r="${f(.9 * sc + .3)}"/>`;
+        x += w + R(10, 34) * sc;
+      } else if (pick < .72) { // cooling towers
+        const w = R(34, 52) * sc, h = R(48, 72) * sc;
+        fill += `M${f(x)} ${G}C${f(x + w * .25)} ${f(G - h * .45)} ${f(x + w * .22)} ${f(G - h * .72)} ${f(x + w * .1)} ${f(G - h)}H${f(x + w * .9)}C${f(x + w * .78)} ${f(G - h * .72)} ${f(x + w * .75)} ${f(G - h * .45)} ${f(x + w)} ${G}Z`;
+        x += w + R(6, 22) * sc;
+      } else if (pick < .86) { // pipe rack with bracing
+        const w = R(90, 240) * sc, y = G - R(22, 42) * sc;
+        fill += `M${f(x)} ${f(y)}h${f(w)}v${f(2.4 * sc)}h${f(-w)}zM${f(x)} ${f(y + 7 * sc)}h${f(w)}v${f(1.8 * sc)}h${f(-w)}z`;
+        for (let px = x; px <= x + w; px += R(18, 30) * sc) { fill += `M${f(px)} ${f(y)}h${f(2 * sc)}V${G}h${f(-2 * sc)}z`; line += `M${f(px)} ${f(y + 9 * sc)}L${f(px + 20 * sc)} ${G}`; }
+        x += w + R(4, 20) * sc;
+      } else { // furnace block with short stack
+        const w = R(26, 56) * sc, h = R(22, 44) * sc;
+        fill += `M${f(x)} ${G}V${f(G - h)}H${f(x + w)}V${G}ZM${f(x + w * .2)} ${f(G - h)}V${f(G - h - 18 * sc)}h${f(5 * sc)}V${f(G - h)}z`;
+        x += w + R(6, 22) * sc;
+      }
+      x += (1 - density) * R(0, 40);
+    }
+    if (density > .6) for (let i = 0; i < 26; i++) lights += `<circle class="lt" cx="${f(R(0, W))}" cy="${f(G - R(5, 70) * sc)}" r=".7"/>`;
+    return { fill, line, lights };
+  }
+  function buildRefinery() {
+    const far = skyline(11, 214, .55, .5), mid = skyline(27, 232, .8, .65), near = skyline(5, 252, 1.05, .8);
+    const layer = (cls, o, extra = "", ground = "") => `<g class="rl ${cls}"><path d="${ground}${o.fill}" class="rf"/><path d="${o.line}" class="rs" fill="none"/>${o.lights}${extra}</g>`;
+    const fog = (y, h, o) => `<rect x="-300" y="${y}" width="1600" height="${h}" fill="url(#fog)" opacity="${o}"/>`;
+    return `<svg class="refinery" viewBox="0 0 1000 260" preserveAspectRatio="xMidYMax meet"><defs>
+      <linearGradient id="fog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--fog)" stop-opacity="0"/><stop offset=".6" stop-color="var(--fog)" stop-opacity=".9"/><stop offset="1" stop-color="var(--fog)" stop-opacity="1"/></linearGradient>
+      <filter id="fb" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation=".9"/></filter><radialGradient id="flare"><stop offset="0" stop-color="#ffb35c" stop-opacity=".7"/><stop offset=".15" stop-color="#ff8a3a" stop-opacity=".35"/><stop offset="1" stop-color="#ff6a2a" stop-opacity="0"/></radialGradient></defs>
+      <circle class="flare-glow" cx="741" cy="112" r="140" fill="url(#flare)"/>
+      ${layer("l-far", far)}${fog(176, 60, .75)}
+      ${layer("l-mid", mid, '<g class="flarestack"><rect x="739.6" y="120" width="1.8" height="112"/><g class="flame"><path d="M740.5 100C737.6 107 736.8 112 738.2 117C739 119.4 742 119.4 742.8 117C744.2 112 743 106 740.5 100Z" fill="#ff9a3a" filter="url(#fb)"/><path d="M740.5 108C739.2 112 739.2 115 740.5 118C741.8 115 741.8 112 740.5 108Z" fill="#fff2cf"/></g></g>')}${fog(206, 46, .65)}
+      ${layer("l-near", near, "", "M-400 252H1400V700H-400Z")}${fog(236, 30, .95)}
+    </svg>`;
+  }
+  const refinery = buildRefinery();
+  scene.innerHTML = `<div class="haze"></div>` + refinery + `<div class="ground"></div>` +
     DROP('style="--w:260px;left:-80px;top:58vh;--fx:46;--fy:.5;--b:5px;--r:-14deg;--d:7s"', "near") +
     DROP('style="--w:200px;right:-60px;top:10vh;--fx:-40;--fy:.42;--b:4px;--r:12deg;--d:9s"', "near") +
     DROP('style="--w:110px;left:68%;top:40vh;--fx:20;--fy:.2;--b:0px;--r:6deg;--d:8s"', "mid") +
