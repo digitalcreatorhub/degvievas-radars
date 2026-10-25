@@ -660,7 +660,7 @@ function renderHero(rows) {
   let delta = "";
   if (ch) {
     const c = Math.abs(ch.delta) * 100;
-    delta = `<p class="delta">${ch.src === "visit" ? t("sinceVisit") : t("vsYest")}: <span class="${ch.delta < 0 ? "down" : "up"}">${ch.delta < 0 ? "▼ −" : "▲ +"}${c.toFixed(1)} ${t("cents")}</span> (${fmtPrice(ch.prev)} €)</p>`;
+    delta = `<p class="delta"><span class="wn ${ch.delta < 0 ? "down" : "up"}"><s>${fmtPrice(ch.prev)}</s><b>${fmtPrice(top.base)}</b></span> <span class="${ch.delta < 0 ? "down" : "up"}">${ch.delta < 0 ? "▼ −" : "▲ +"}${c.toFixed(1)} ${t("cents")}</span> · ${ch.src === "visit" ? t("sinceVisit") : t("vsYest")}</p>`;
   } else if (!state.area && !state.chain && historyDelta()) {
     delta = `<p class="delta">${t("vsYest")}: ${t("same")}</p>`;
   }
@@ -1539,7 +1539,11 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
     </svg>`;
   }
   const refinery = buildRefinery();
-  scene.innerHTML = `<div class="haze"></div>` + refinery + `<div class="ground"></div>` +
+  const sparks = REDUCE_MOTION ? "" : `<div class="sparks">${Array.from({ length: 18 }, (_, i) => {
+    const r = (n) => ((Math.sin(i * 12.9898 + n * 78.233) * 43758.5453) % 1 + 1) % 1;
+    return `<i style="left:${(r(1) * 100).toFixed(1)}%;--s:${(1.5 + r(2) * 2.5).toFixed(1)}px;--t:${(26 + r(3) * 24).toFixed(0)}s;--dl:${(-r(4) * 40).toFixed(1)}s;--dx:${((r(5) - .5) * 60).toFixed(0)}px;--o:${(.35 + r(6) * .4).toFixed(2)}"></i>`;
+  }).join("")}</div>`;
+  scene.innerHTML = `<div class="haze"></div>` + refinery + `<div class="ground"></div>` + sparks +
     DROP('style="--w:230px;left:-96px;top:34vh;--fx:46;--fy:.5;--b:2.2px;--r:-14deg;--d:7s"', "near") +
     DROP('style="--w:200px;right:-60px;top:10vh;--fx:-40;--fy:.42;--b:1.8px;--r:12deg;--d:9s"', "near") +
     DROP('style="--w:104px;left:66%;top:36vh;--fx:20;--fy:.2;--b:0px;--r:6deg;--d:8s"', "mid") +
