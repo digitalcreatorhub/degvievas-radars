@@ -172,7 +172,7 @@ Object.assign(I18N.ru, {
   mapEmpty: "На карте нет станций с точной ценой. Переключитесь на «Все заправки».",
   cmpH: "Сравнение заправок", cmpBtn: "Сравнить", cmpAdd: "Добавить к сравнению", cmpRemove: "Убрать из сравнения", cmpMax: "Можно сравнить до 3 заправок", cmpClear: "Сбросить", cmpPrice: "Цена", cmpVsBest: "К лучшей", cmpBest: "Лучшая цена", cmpTank: "Бак", cmpDist: "Расстояние", cmpUpd: "Цена изменена", cmpRel: "Надёжность", cmpOther: "Другое топливо", cmpNeed: "Выберите минимум 2 заправки.",
   relHigh: "Подтверждена сетью", relMid: "От водителей", relLow: "Оценка по сети", relStale: "Возможно устарела", vsAvgLbl: "к средней по списку",
-  nearestTag: "Ближайшая",
+  nearestTag: "Дёшево рядом",
   mvMap: "Карта", mvBoth: "Вместе", mvList: "Список", onMap: "На карте",
   mapCheapest: "Самая дешёвая", mapHint: "Цвет цены: зелёный дешевле, красный дороже. Пунктир и синий: оценка по минимуму сети.",
   jH: "Журнал заправок", jSub: "Записи хранятся только на этом телефоне.",
@@ -204,7 +204,7 @@ Object.assign(I18N.en, {
   mapEmpty: "No stations with an exact price on the map. Switch to “All stations”.",
   cmpH: "Compare stations", cmpBtn: "Compare", cmpAdd: "Add to comparison", cmpRemove: "Remove from comparison", cmpMax: "You can compare up to 3 stations", cmpClear: "Clear", cmpPrice: "Price", cmpVsBest: "vs best", cmpBest: "Best price", cmpTank: "Tank", cmpDist: "Distance", cmpUpd: "Price changed", cmpRel: "Reliability", cmpOther: "Other fuels", cmpNeed: "Pick at least 2 stations.",
   relHigh: "Confirmed by the chain", relMid: "From drivers", relLow: "Chain-minimum estimate", relStale: "May be outdated", vsAvgLbl: "vs list average",
-  nearestTag: "Nearest",
+  nearestTag: "Cheapest nearby",
   mvMap: "Map", mvBoth: "Split", mvList: "List", onMap: "On map",
   mapCheapest: "Cheapest", mapHint: "Price colour: green is cheaper, red is dearer. Dashed blue: estimate from the chain minimum.",
   jH: "Fill-up log", jSub: "Entries are stored on this phone only.",
@@ -226,6 +226,7 @@ const EXACT_KINDS = new Set(["station", "network", "user"]);
 const USER_MAX_AGE_H = 72;
 const USER_MAX_AGE_BY_FUEL = { lpg: 21 * 24, cng: 21 * 24 };
 const ROAD_FACTOR = 1.3;
+const NEAR_KM = 5;
 const STALE_AFTER_MIN = 20 * 60;
 const RADII = [2, 5, 10, 25];
 
@@ -757,8 +758,14 @@ function renderList(rows, onMap = false) {
   const pool = exactPrices.length ? exactPrices : byPrice.map((r) => r.price);
   const lo = Math.min(...pool), hi = Math.max(...pool);
   const limit = state.showAll ? rows.length : 8;
+  // the cheapest price among stations close to you (within the chosen radius, or 5 km); ties go to the closer one
   let nearId = null;
-  if (state.loc) { let bd = Infinity; for (const r of rows) if (r.dist != null && r.dist < bd) { bd = r.dist; nearId = r.st.id; } }
+  if (state.loc) {
+    const reach = state.radius || NEAR_KM;
+    const pool = rows.filter((r) => r.exact && r.dist != null && r.dist <= reach);
+    const pick = (pool.length ? pool : rows.filter((r) => r.dist != null)).reduce((a, b) => (!a || b.price < a.price - 0.0004 || (Math.abs(b.price - a.price) <= 0.0004 && b.dist < a.dist) ? b : a), null);
+    if (pick) nearId = pick.st.id;
+  }
   let shown = rows.slice(0, limit).map((r, i) => [r, i]);
   if (nearId && !shown.some(([r]) => r.st.id === nearId)) { const ni = rows.findIndex((r) => r.st.id === nearId); if (ni >= 0) shown.push([rows[ni], ni]); }
   const items = shown.map(([r, i]) => {
