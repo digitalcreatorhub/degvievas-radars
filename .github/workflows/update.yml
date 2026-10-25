@@ -2,8 +2,10 @@ name: Update prices and publish
 
 on:
   schedule:
-    # UTC. Riga is UTC+2 in winter, UTC+3 in summer.
+    # UTC. Riga is UTC+2 in winter, UTC+3 in summer. The morning push is at 07:50 Riga time,
+    # so the 04:30 (summer) and 05:20 (winter) runs finish just before it.
     - cron: "30 4 * * *"
+    - cron: "20 5 * * *"
     - cron: "45 5 * * *"
     - cron: "15 6 * * *"
     - cron: "30 9,13,17 * * *"
