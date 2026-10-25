@@ -906,3 +906,5 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 .drop.far { opacity: .5; }
 .drop.near { opacity: .6; }
 .drop.mid { opacity: .55; }
+/* every row keeps the long colour strip on the left; estimates get a softer one */
+.row.est { box-shadow: inset 3px 0 0 hsl(var(--h) 70% 52% / .5); background: linear-gradient(90deg, hsl(var(--h) 70% 50% / .07), transparent 32%); }
