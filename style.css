@@ -507,7 +507,7 @@ body::after {
 
 /* Spatial glass surfaces. --mx/--my are set by a pointer listener: the light follows the finger. */
 .tile, .fav, .ins, .sum, .oil > div, .jstats > div, .save-card, .cta, .install, .jform, .detail, .empty, .calc .field input, .fuel, .chip, .seg, .search input, .picker select, .more, .icon-btn {
-  -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(7px) saturate(1.4); backdrop-filter: blur(7px) saturate(1.4);
 }
 .tile, .fav, .ins, .sum, .oil > div, .jstats > div, .save-card, .cta, .jform {
   background-image: radial-gradient(190px circle at var(--mx, -300px) var(--my, -300px), var(--spot), transparent 70%), var(--glass);
@@ -550,8 +550,8 @@ option { background: #10131a; color: #f2f4fa; }
 /* The pylon becomes a holo-card with a travelling edge light. */
 .pylon {
   border: 0; border-radius: 28px;
-  background: radial-gradient(460px 220px at 88% -40px, rgba(255, 176, 46, .22), transparent 70%), radial-gradient(360px 200px at -10% 110%, rgba(139, 123, 255, .22), transparent 70%), rgba(8, 9, 15, .72);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5); backdrop-filter: blur(24px) saturate(1.5);
+  background: radial-gradient(460px 220px at 88% -40px, rgba(255, 176, 46, .22), transparent 70%), radial-gradient(360px 200px at -10% 110%, rgba(139, 123, 255, .22), transparent 70%), rgba(8, 9, 15, .5);
+  -webkit-backdrop-filter: blur(8px) saturate(1.5); backdrop-filter: blur(8px) saturate(1.5);
   box-shadow: var(--rim), 0 30px 70px -30px rgba(255, 176, 46, .45), 0 24px 50px -24px rgba(0, 0, 0, .9);
 }
 .pylon::before {
@@ -728,12 +728,14 @@ input[type="range"] { width: 100%; accent-color: var(--amber); height: 32px; }
 button:active:not(:disabled), .btn:active { transition-duration: .08s; }
 .fuel, .chip, .tile, .icon-btn, .btn { transition-timing-function: var(--spring); transition-duration: .35s; }
 
-.scene { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; --sil-a: #34306a; --sil-b: #131230; }
-:root[data-theme="light"] .scene { --sil-a: #5d5a96; --sil-b: #2a2d52; }
-.haze { position: absolute; left: 0; right: 0; bottom: 0; height: 46vh; background: linear-gradient(0deg, rgba(255, 140, 50, .22), rgba(139, 123, 255, .1) 45%, transparent); }
+.scene { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; --sil-a: #5a53b0; --sil-b: #1d1b4a; }
+:root[data-theme="light"] .scene { --sil-a: #7d78c4; --sil-b: #3a3d78; }
+.scene .sa { stop-color: var(--sil-a); }
+.scene .sb { stop-color: var(--sil-b); }
+.haze { position: absolute; left: 0; right: 0; bottom: 0; height: 60vh; background: linear-gradient(0deg, rgba(255, 140, 50, .34), rgba(139, 123, 255, .16) 48%, transparent); }
 :root[data-theme="light"] .haze { background: linear-gradient(0deg, rgba(255, 170, 90, .35), rgba(139, 123, 255, .12) 50%, transparent); }
 .refinery {
-  position: absolute; left: 50%; bottom: 0; width: min(max(100%, 820px), 1000px); height: auto; overflow: visible; opacity: .95;
+  position: absolute; left: 50%; bottom: 64px; width: min(max(100%, 900px), 1100px); height: auto; overflow: visible; opacity: .85;
   translate: calc(-50% + var(--px, 0) * -9px) calc(var(--sy, 0) * .035px);
 }
 :root[data-theme="light"] .refinery { opacity: .5; }
@@ -752,7 +754,7 @@ button:active:not(:disabled), .btn:active { transition-duration: .08s; }
 /* Oil drops at different depths: farther = smaller, slower parallax, softer focus. */
 .drop {
   position: absolute; width: var(--w); height: auto; overflow: visible;
-  filter: blur(var(--b)) drop-shadow(0 0 20px rgba(139, 123, 255, .5)) drop-shadow(0 16px 22px rgba(0, 0, 0, .5));
+  filter: blur(var(--b)) drop-shadow(0 0 26px rgba(139, 123, 255, .7)) drop-shadow(0 16px 22px rgba(0, 0, 0, .5));
   translate: calc(var(--px, 0) * var(--fx) * 1px) calc(var(--sy, 0) * var(--fy) * -1px + var(--py, 0) * var(--fx) * .5px);
   rotate: var(--r);
   transform-origin: 50% 8%;
