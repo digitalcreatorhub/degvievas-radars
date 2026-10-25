@@ -793,3 +793,16 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 /* Numerals stay razor sharp: no filters or transforms resting on them */
 .pylon, .tile, .row, .fav, .ins, .sum, .save-card { text-rendering: geometricPrecision; -webkit-font-smoothing: antialiased; }
 .pylon .dg, .tile .dg, .ins .dg, .save-big .dg { text-shadow: none; }
+
+/* ===== map: clusters and deal glow ===== */
+.pin { box-shadow: 0 0 calc(5px + var(--g, 0) * 20px) calc(var(--g, 0) * 3px) hsl(var(--h) 90% 55% / calc(.28 + var(--g, 0) * .5)), 0 4px 12px rgba(0, 0, 0, .5); }
+.mk .anchor { position: relative; }
+.cl { position: absolute; left: calc(100% - 3px); top: 2px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font: 800 12px/1 var(--num); color: #1a1208; background: linear-gradient(135deg, #ffd166, #ff9a2e); box-shadow: 0 2px 8px rgba(0, 0, 0, .55), 0 0 0 2px rgba(5, 4, 3, .85); z-index: 2; transition: transform .2s var(--spring, ease); }
+.cl:active { transform: scale(.9); }
+.mk.sel .pin { box-shadow: 0 0 0 3px var(--amber), 0 0 26px 2px var(--amber); }
+.cl::after { content: ""; position: absolute; inset: -12px; }
+.mv-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.mv-row .seg { flex: none; }
+.mapbox.short { height: clamp(260px, 40dvh, 420px); }
+.ra-btn { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 600 13px/1 inherit; cursor: pointer; }
+.ra-btn svg { width: 16px; height: 16px; }

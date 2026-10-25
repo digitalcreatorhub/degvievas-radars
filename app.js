@@ -170,6 +170,7 @@ Object.assign(I18N.ru, {
   share: "Поделиться", copied: "Скопировано",
   mapFit: "Показать все", mapZoomIn: "Приблизить", mapZoomOut: "Отдалить", mapMe: "Где я",
   mapEmpty: "На карте нет станций с точной ценой. Переключитесь на «Все заправки».",
+  mvMap: "Карта", mvBoth: "Вместе", mvList: "Список", onMap: "На карте",
   mapCheapest: "Самая дешёвая", mapHint: "Цвет цены: зелёный дешевле, красный дороже. Пунктир и синий: оценка по минимуму сети.",
   jH: "Журнал заправок", jSub: "Записи хранятся только на этом телефоне.",
   jDate: "Дата", jLiters: "Литров", jPrice: "Цена, €/л", jOdo: "Пробег, км", jFull: "Полный бак",
@@ -198,6 +199,7 @@ Object.assign(I18N.en, {
   share: "Share", copied: "Copied",
   mapFit: "Show all", mapZoomIn: "Zoom in", mapZoomOut: "Zoom out", mapMe: "My location",
   mapEmpty: "No stations with an exact price on the map. Switch to “All stations”.",
+  mvMap: "Map", mvBoth: "Split", mvList: "List", onMap: "On map",
   mapCheapest: "Cheapest", mapHint: "Price colour: green is cheaper, red is dearer. Dashed blue: estimate from the chain minimum.",
   jH: "Fill-up log", jSub: "Entries are stored on this phone only.",
   jDate: "Date", jLiters: "Litres", jPrice: "Price, €/l", jOdo: "Odometer, km", jFull: "Full tank",
@@ -257,6 +259,7 @@ const state = {
   installed: false,
   data: null, history: null, oil: null,
   mapMode: store.get("mapmode", "all"),
+  mapView: store.get("mapview", "map"),
   fpm: store.get("fpm", 4),
   trendRange: "30",
   heat: false,
@@ -723,7 +726,7 @@ function renderSort() {
   const opts = [["price", t("sortPrice")], ["near", t("sortNear")], ["fresh", t("sortFresh")]];
   return `<div class="seg slim sort" role="group">${opts.map(([k, l]) => `<button data-act="sort" data-v="${k}" aria-pressed="${(state.sort === k && (k !== "near" || state.loc)) ? "true" : "false"}">${l}</button>`).join("")}</div>`;
 }
-function renderList(rows) {
+function renderList(rows, onMap = false) {
   if (!rows.length) return "";
   const byPrice = rows;
   rows = sortedRows(rows);
@@ -743,7 +746,7 @@ function renderList(rows) {
         <span>${esc(r.st.address)}</span>${note}
         <span class="note">${dist}${dayWord(r.cell)}</span></div>
       <div class="rp"><b class="hp">${pylonStatic(r.price)}</b>${r.disc > 0 ? `<s class="was">${fmtPrice(r.base)}</s>` : ""}
-        <div class="ra">${heartBtn(r.st.id)}<a href="${linkWaze(r.st)}" target="_blank" rel="noopener">${ICON.nav}${t("navTo")}</a></div>
+        <div class="ra">${heartBtn(r.st.id)}${onMap ? `<button class="ra-btn" data-act="onmap" data-v="${esc(r.st.id)}">${ICON.map}${t("onMap")}</button>` : ""}<a href="${linkWaze(r.st)}" target="_blank" rel="noopener">${ICON.nav}${t("navTo")}</a></div>
         <button class="more-prices" data-act="row" data-v="${esc(r.st.id)}" aria-expanded="${state.open === r.st.id}">${t("allPrices")}</button></div>
       ${state.open === r.st.id ? renderDetail(r.st) : ""}
     </li>`;
@@ -878,12 +881,16 @@ function renderMapView() {
       </div>`;
     } else lastPop = null;
   } else lastPop = null;
-  return `${fuelTabs()}
-  <div class="seg slim" role="group">
+  const mv = state.mapView;
+  const views = [["map", t("mvMap")], ["split", t("mvBoth")], ["list", t("mvList")]];
+  const seg = `<div class="mv-row"><div class="seg slim" role="group">
     <button data-act="mapmode" data-v="exact" aria-pressed="${state.mapMode === "exact"}">${t("exact")}</button>
     <button data-act="mapmode" data-v="all" aria-pressed="${state.mapMode === "all"}">${t("all")}</button>
-  </div>
-  <div class="mapbox">
+  </div><div class="seg slim mv" role="group">${views.map(([k, l]) => `<button data-act="mview" data-v="${k}" aria-pressed="${mv === k}">${l}</button>`).join("")}</div></div>`;
+  const listHtml = mv !== "map" ? renderList(rows, true) : "";
+  if (mv === "list") return `${fuelTabs()}${seg}${listHtml || `<div class="empty"><b>${t("emptyH")}</b>${t("mapEmpty")}</div>`}`;
+  return `${fuelTabs()}${seg}
+  <div class="mapbox ${mv === "split" ? "short" : ""}">
     <div id="mapslot"></div>
     <div class="mm-ctl zoom">
       <button data-act="mzoom" data-v="1" aria-label="${t("mapZoomIn")}">${ICON.plus}</button>
@@ -895,7 +902,7 @@ function renderMapView() {
     ${rows.length ? "" : `<div class="mm-empty">${t("mapEmpty")}</div>`}
     ${pop}
   </div>
-  <p class="sub" style="margin-top:10px">${t("mapHint")}</p>`;
+  ${mv === "split" ? listHtml : `<p class="sub" style="margin-top:10px">${t("mapHint")}</p>`}`;
 }
 
 function attachMap() {
@@ -921,10 +928,11 @@ function attachMap() {
     const chain = state.data.chains[r.st.chain];
     const hue = r.exact ? heatHue(r.price, lo, hi) : 220;
     const sel = state.selected === r.st.id;
+    const g = r.exact && hi > lo ? clamp(1 - (r.price - lo) / (hi - lo), 0, 1) : 0;   // 1 = cheapest, glows most
     return {
-      id: r.st.id, lat: r.st.lat, lng: r.st.lng, prio: r.exact ? i : 1000 + i, force: sel || (i === 0 && r.exact),
+      id: r.st.id, noCluster: state.heat, lat: r.st.lat, lng: r.st.lng, prio: r.exact ? i : 1000 + i, force: sel || (i === 0 && r.exact),
       cls: `${sel ? "sel " : ""}${i === 0 && r.exact ? "best " : ""}${r.exact ? "" : "est"}`.trim(),
-      html: state.heat && !sel ? `<span class="blob" style="--h:${hue}"></span>` : `<span class="pin" style="--h:${hue};--c:${esc(chain.color)}"><i class="pdot"></i><b>${fmtPrice(r.price)}</b></span>`,
+      html: state.heat && !sel ? `<span class="blob" style="--h:${hue}"></span>` : `<span class="pin" style="--h:${hue};--c:${esc(chain.color)};--g:${g.toFixed(2)}"><i class="pdot"></i><b>${fmtPrice(r.price)}</b></span>`,
       dotHtml: state.heat && !sel ? `<span class="blob" style="--h:${hue}"></span>` : `<span class="pin mini" style="--h:${hue};--c:${esc(chain.color)}"></span>`,
     };
   });
@@ -1227,6 +1235,14 @@ app.addEventListener("click", (e) => {
     case "gocity": state.city = v; store.set("city", v); state.area = null; state.chain = null; state.view = "prices"; mapFitKey = ""; rolled.clear(); buzz(10); render(true); window.scrollTo(0, 0); return;
     case "trange": state.trendRange = v; anim = true; break;
     case "mheat": state.heat = !state.heat; buzz(8); anim = false; break;
+    case "mview": state.mapView = v; store.set("mapview", v); anim = false; mapFitKey = ""; break;
+    case "onmap": {
+      const st = stationById(v); if (!st) return;
+      state.selected = v; state.open = null; if (state.mapView === "list") { state.mapView = "split"; store.set("mapview", "split"); mapFitKey = "x"; }
+      buzz(10); render(false); window.scrollTo({ top: 0, behavior: "smooth" });
+      if (mapObj) mapObj.flyTo(st.lat, st.lng, Math.max(mapObj.z, 13.5), 0.3, 600);
+      return;
+    }
     case "mapmode": state.mapMode = v; store.set("mapmode", v); anim = false; break;
     case "mode": state.mode = v; store.set("mode", v); break;
     case "area": state.area = v || null; state.showAll = false; mapFitKey = ""; break;
