@@ -916,3 +916,15 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 
 /* the left strip is equally bright on every row, estimates included */
 .row.heat, .row.est { box-shadow: inset 4px 0 0 hsl(var(--h) 85% 58%), inset 14px 0 14px -10px hsl(var(--h) 85% 55% / .55); }
+
+/* tip along the way */
+.pass { position: fixed; left: 12px; right: 12px; bottom: calc(96px + env(safe-area-inset-bottom)); max-width: 520px; margin: 0 auto; z-index: 40; padding: 14px 16px; border-radius: 22px; background: rgba(14, 10, 6, .96); border: 1px solid rgba(255, 176, 46, .5); box-shadow: 0 20px 50px -10px rgba(0, 0, 0, .9), 0 0 30px -6px rgba(255, 176, 46, .45); transform: translateY(24px); opacity: 0; pointer-events: none; transition: transform .45s var(--spring, ease), opacity .3s; }
+.pass.show { transform: none; opacity: 1; pointer-events: auto; }
+.pass-h { display: flex; align-items: center; gap: 8px; }
+.pass-h b { flex: 1; color: var(--amber); }
+.pass-h button { width: 36px; height: 36px; border: 0; border-radius: 12px; background: transparent; color: var(--mute); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.pass p { margin: 6px 0 0; }
+.pass-a { color: var(--mute); font-size: 14px; }
+.pass-p span { font: 800 22px/1 var(--num); color: #6ee79a; margin-right: 6px; }
+.pass .btn { margin-top: 12px; width: 100%; flex: none; }
+:root[data-theme="light"] .pass { background: rgba(255, 250, 241, .97); color: #1a1208; }

@@ -173,6 +173,10 @@ Object.assign(I18N.ru, {
   cmpH: "Сравнение заправок", cmpBtn: "Сравнить", cmpAdd: "Добавить к сравнению", cmpRemove: "Убрать из сравнения", cmpMax: "Можно сравнить до 3 заправок", cmpClear: "Сбросить", cmpPrice: "Цена", cmpVsBest: "К лучшей", cmpBest: "Лучшая цена", cmpTank: "Бак", cmpDist: "Расстояние", cmpUpd: "Цена изменена", cmpRel: "Надёжность", cmpOther: "Другое топливо", cmpNeed: "Выберите минимум 2 заправки.",
   relHigh: "Подтверждена сетью", relMid: "От водителей", relLow: "Оценка по сети", relStale: "Возможно устарела", vsAvgLbl: "к средней по списку",
   nearestTag: "Дёшево рядом",
+  soundSet: "Звук при запуске", driveSet: "Подсказки по пути",
+  driveHelp: "Пока приложение открыто на экране, подскажу, если вы проезжаете рядом с дешёвой заправкой. В фоне и при выключенном экране браузер не даёт следить за местом.",
+  driveOn: "Подсказки по пути включены", driveOff: "Подсказки по пути выключены", driveNoGeo: "Нужен доступ к геолокации",
+  tipH: "Рядом дешёвая заправка", tipDiff: "ниже средней рядом на",
   mvMap: "Карта", mvBoth: "Вместе", mvList: "Список", onMap: "На карте",
   mapCheapest: "Самая дешёвая", mapHint: "Цвет цены: зелёный дешевле, красный дороже. Пунктир и синий: оценка по минимуму сети.",
   jH: "Журнал заправок", jSub: "Записи хранятся только на этом телефоне.",
@@ -205,6 +209,10 @@ Object.assign(I18N.en, {
   cmpH: "Compare stations", cmpBtn: "Compare", cmpAdd: "Add to comparison", cmpRemove: "Remove from comparison", cmpMax: "You can compare up to 3 stations", cmpClear: "Clear", cmpPrice: "Price", cmpVsBest: "vs best", cmpBest: "Best price", cmpTank: "Tank", cmpDist: "Distance", cmpUpd: "Price changed", cmpRel: "Reliability", cmpOther: "Other fuels", cmpNeed: "Pick at least 2 stations.",
   relHigh: "Confirmed by the chain", relMid: "From drivers", relLow: "Chain-minimum estimate", relStale: "May be outdated", vsAvgLbl: "vs list average",
   nearestTag: "Cheapest nearby",
+  soundSet: "Sound on launch", driveSet: "Tips along the way",
+  driveHelp: "While the app is open on screen I will tell you when you pass a cheap station. Browsers do not allow tracking location in the background or with the screen off.",
+  driveOn: "Tips along the way are on", driveOff: "Tips along the way are off", driveNoGeo: "Location access is needed",
+  tipH: "Cheap station nearby", tipDiff: "below the local average by",
   mvMap: "Map", mvBoth: "Split", mvList: "List", onMap: "On map",
   mapCheapest: "Cheapest", mapHint: "Price colour: green is cheaper, red is dearer. Dashed blue: estimate from the chain minimum.",
   jH: "Fill-up log", jSub: "Entries are stored on this phone only.",
@@ -253,6 +261,8 @@ const state = {
   disc: store.get("disc", {}),
   useDisc: store.get("useDisc", true),
   haptics: store.get("haptics", true),
+  sound: store.get("sound", true),
+  drive: store.get("drive", false),
   journal: store.get("journal", []),
   jf: { date: "", l: "", ppl: "", odo: "", full: true },
   sheet: false,
@@ -1065,6 +1075,9 @@ function renderSheet() {
       <button data-act="settheme" data-v="dark" aria-pressed="${state.theme === "dark"}">${t("dark")}</button>
       <button data-act="settheme" data-v="light" aria-pressed="${state.theme === "light"}">${t("light")}</button></div></div>
     <label class="set-row"><span>${t("haptics")}</span><input type="checkbox" class="sw" data-act="haptics" ${state.haptics ? "checked" : ""}></label>
+    <label class="set-row"><span>${t("soundSet")}</span><input type="checkbox" class="sw" data-act="sound" ${state.sound ? "checked" : ""}></label>
+    <label class="set-row"><span>${t("driveSet")}</span><input type="checkbox" class="sw" data-act="drive" ${state.drive ? "checked" : ""}></label>
+    <p class="sub" style="margin-top:-4px">${t("driveHelp")}</p>
     <h3>${t("discH")}</h3><p class="sub">${t("discHelp")}</p>
     <label class="set-row"><span>${t("discApply")}</span><input type="checkbox" class="sw" data-act="usedisc" ${state.useDisc ? "checked" : ""}></label>
     <div class="disc-list">${chains.map(([slug, c]) => `<label class="disc"><span><i class="dot" style="background:${esc(c.color)}"></i>${esc(c.name)}</span>
@@ -1382,6 +1395,12 @@ app.addEventListener("change", (e) => {
   if (act === "road") { state.road = el.checked; render(false); }
   if (act === "jfull") state.jf.full = el.checked;
   if (act === "haptics") { state.haptics = el.checked; store.set("haptics", el.checked); if (el.checked) buzz(15); }
+  if (act === "sound") { state.sound = el.checked; store.set("sound", el.checked); if (el.checked) { chimed = false; startupSound(true); } }
+  if (act === "drive") {
+    state.drive = el.checked; store.set("drive", el.checked);
+    if (el.checked) { if (!navigator.geolocation) { toast(t("driveNoGeo")); el.checked = false; state.drive = false; store.set("drive", false); } else { driveStart(); toast(t("driveOn")); } }
+    else { driveStop(); toast(t("driveOff")); }
+  }
   if (act === "usedisc") { state.useDisc = el.checked; store.set("useDisc", el.checked); }
 });
 app.addEventListener("input", (e) => {
@@ -1723,7 +1742,104 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (reloadOnUpdate) location.reload(); });
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 }
+/* ---------- startup sound (synthesised, nothing to download) ---------- */
+let actx = null, chimed = false;
+function playChime() {
+  if (!state.sound || !actx || actx.state !== "running") return false;
+  try {
+    const t0 = actx.currentTime + .02, out = actx.createGain();
+    out.gain.value = .2; out.connect(actx.destination);
+    const noise = (dur) => {
+      const b = actx.createBuffer(1, Math.ceil(actx.sampleRate * dur), actx.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const n = actx.createBufferSource(); n.buffer = b; return n;
+    };
+    // 1) a soft nozzle click
+    const click = noise(.03), cf = actx.createBiquadFilter(), cg = actx.createGain();
+    cf.type = "bandpass"; cf.frequency.value = 2200; cg.gain.setValueAtTime(.5, t0); cg.gain.exponentialRampToValueAtTime(.001, t0 + .03);
+    click.connect(cf); cf.connect(cg); cg.connect(out); click.start(t0);
+    // 2) fuel flowing: filtered noise that opens up and fades
+    const flow = noise(.6), ff = actx.createBiquadFilter(), fg = actx.createGain();
+    ff.type = "lowpass"; ff.frequency.setValueAtTime(260, t0 + .05); ff.frequency.exponentialRampToValueAtTime(1500, t0 + .5);
+    fg.gain.setValueAtTime(.0001, t0 + .05); fg.gain.linearRampToValueAtTime(.22, t0 + .3); fg.gain.exponentialRampToValueAtTime(.001, t0 + .62);
+    flow.connect(ff); ff.connect(fg); fg.connect(out); flow.start(t0 + .05);
+    // 3) warm engine-like swell
+    const eng = actx.createOscillator(), eg = actx.createGain();
+    eng.type = "sawtooth"; eng.frequency.setValueAtTime(70, t0 + .05); eng.frequency.exponentialRampToValueAtTime(150, t0 + .55);
+    const lp = actx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 380;
+    eg.gain.setValueAtTime(.0001, t0 + .05); eg.gain.linearRampToValueAtTime(.16, t0 + .3); eg.gain.exponentialRampToValueAtTime(.001, t0 + .7);
+    eng.connect(lp); lp.connect(eg); eg.connect(out); eng.start(t0 + .05); eng.stop(t0 + .75);
+    // 4) the "ready" chime: two soft bell tones
+    [[784, .42], [1175, .5]].forEach(([f, at]) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = "sine"; o.frequency.value = f;
+      g.gain.setValueAtTime(.0001, t0 + at); g.gain.linearRampToValueAtTime(.34, t0 + at + .02); g.gain.exponentialRampToValueAtTime(.001, t0 + at + 1.1);
+      o.connect(g); g.connect(out); o.start(t0 + at); o.stop(t0 + at + 1.2);
+    });
+    return true;
+  } catch { return false; }
+}
+function startupSound(force = false) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC || !state.sound || (chimed && !force)) return;
+  try { actx = actx || new AC(); } catch { return; }
+  const attempt = () => { if (!chimed || force) { if (playChime()) chimed = true; } };
+  actx.resume().then(attempt).catch(() => {});
+  setTimeout(attempt, 300);
+  // browsers may keep sound locked until the first touch; then play it
+  const arm = () => { actx.resume().then(attempt).catch(() => {}); };
+  addEventListener("pointerdown", arm, { once: true, passive: true });
+}
+
+/* ---------- tips along the way: only while the app is open on screen ---------- */
+let driveWatch = null;
+function driveStop() { if (driveWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(driveWatch); driveWatch = null; }
+function driveStart() {
+  if (!state.drive || !navigator.geolocation || driveWatch != null) return;
+  driveWatch = navigator.geolocation.watchPosition(onDrivePos, () => {}, { enableHighAccuracy: false, maximumAge: 8000, timeout: 20000 });
+}
+function onDrivePos(pos) {
+  if (!state.data || document.hidden || !state.drive) return;
+  if (pos.coords.accuracy > 150) return;
+  if (pos.coords.speed != null && pos.coords.speed < 2.5) return;   // standing or walking
+  const me = { lat: pos.coords.latitude, lng: pos.coords.longitude }, fuel = state.fuel;
+  const pool = []; let near = null;
+  for (const st of state.data.stations) {
+    const c = st.fuels[fuel];
+    if (!c || !isExact(c, st, fuel)) continue;
+    const km = haversineKm(me, st);
+    if (km > 15) continue;
+    const price = c.p - discOf(st.chain);
+    pool.push(price);
+    if (km <= 0.3 && (!near || km < near.km)) near = { st, price, km };
+  }
+  if (!near || pool.length < 5) return;
+  const avg = pool.reduce((a, b) => a + b, 0) / pool.length;
+  const dearer = pool.filter((p) => p > near.price + 0.0004).length / pool.length;
+  if (near.price > avg - 0.02 || dearer < 0.7) return;
+  const seen = store.get("tips", {});
+  if (Date.now() - (seen[near.st.id] || 0) < 2 * 3600e3) return;
+  seen[near.st.id] = Date.now(); store.set("tips", seen);
+  showTip(near, avg);
+}
+let tipTimer = 0;
+function showTip(n, avg) {
+  let el = document.getElementById("pass");
+  if (!el) { el = document.createElement("aside"); el.id = "pass"; el.className = "pass"; el.setAttribute("role", "status"); document.body.appendChild(el); }
+  const chain = state.data.chains[n.st.chain];
+  el.innerHTML = `<div class="pass-h"><i class="dot" style="background:${esc(chain.color)}"></i><b>${t("tipH")}</b><button aria-label="${t("close")}">${ICON.close}</button></div>
+    <p class="pass-a"><b>${esc(chain.name)}</b>, ${esc(n.st.address)}</p>
+    <p class="pass-p"><span>${fmtPrice(n.price)} €/${state.lang === "ru" ? "л" : "l"}</span> ${t("tipDiff")} ${((avg - n.price) * 100).toFixed(1)} ${t("cents")}</p>
+    <a class="btn" href="${linkWaze(n.st)}" target="_blank" rel="noopener">${t("waze")}</a>`;
+  el.querySelector("button").onclick = () => el.classList.remove("show");
+  requestAnimationFrame(() => el.classList.add("show"));
+  if (state.haptics && navigator.vibrate) { try { navigator.vibrate([60, 60, 60]); } catch { /* ignore */ } }
+  clearTimeout(tipTimer); tipTimer = setTimeout(() => el.classList.remove("show"), 16000);
+}
+
 applyTheme();
 load();
+startupSound();
+driveStart();
 // if the person has used "Near me" before and the permission is still granted, locate quietly so the nearest station is marked
 if (store.get("usedNear", false) && navigator.permissions?.query) navigator.permissions.query({ name: "geolocation" }).then((r) => { if (r.state === "granted") locate(true); }).catch(() => {});
