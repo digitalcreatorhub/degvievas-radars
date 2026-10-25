@@ -1315,10 +1315,47 @@ document.addEventListener("visibilitychange", () => {
 /* ---------- motion layer: orbs, parallax, 3D tilt, scroll reveal, FLIP ---------- */
 const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
 (function motion() {
-  const orbs = document.createElement("div");
-  orbs.className = "orbs"; orbs.setAttribute("aria-hidden", "true");
-  orbs.innerHTML = "<i></i><i></i><i></i>";
-  document.body.appendChild(orbs);
+  const scene = document.createElement("div");
+  scene.className = "scene"; scene.setAttribute("aria-hidden", "true");
+  const DROP = (n, cls) => `<svg class="drop ${cls}" viewBox="0 0 100 130" ${n}><path d="M50 3C50 3 9 58 9 86a41 41 0 0 0 82 0C91 58 50 3 50 3Z" fill="url(#oilBody)"/><path d="M50 3C50 3 9 58 9 86a41 41 0 0 0 82 0C91 58 50 3 50 3Z" fill="none" stroke="url(#oilRim)" stroke-width="2.6"/><path d="M20 94a31 31 0 0 0 60 0c-8 16-22 24-30 24s-22-8-30-24z" fill="url(#oilGlow)" opacity=".75"/><ellipse cx="34" cy="78" rx="7" ry="17" transform="rotate(14 34 78)" fill="#fff" opacity=".5"/><circle cx="43" cy="49" r="3.2" fill="#fff" opacity=".7"/></svg>`;
+  const refinery = `<svg class="refinery" viewBox="0 0 600 230" preserveAspectRatio="xMidYMax meet">
+    <circle class="flare-glow" cx="502" cy="56" r="60" fill="url(#flareGlow)"/>
+    <g fill="url(#silGrad)" stroke="rgba(255,176,46,.28)" stroke-width=".8">
+      <rect x="-300" y="198" width="1200" height="40"/>
+      <path d="M10 200V174Q10 166 18 166H60Q68 166 68 174V200Z"/><path d="M76 200V180Q76 172 82 172H124Q130 172 130 180V200Z"/>
+      <rect x="150" y="72" width="20" height="128" rx="3"/><ellipse cx="160" cy="72" rx="10" ry="5"/>
+      <rect x="178" y="98" width="16" height="102" rx="3"/><ellipse cx="186" cy="98" rx="8" ry="4"/>
+      <rect x="202" y="62" width="22" height="138" rx="3"/><ellipse cx="213" cy="62" rx="11" ry="5"/>
+      <rect x="130" y="142" width="238" height="4"/><rect x="130" y="154" width="238" height="3"/>
+      <rect x="140" y="146" width="3" height="54"/><rect x="196" y="146" width="3" height="54"/><rect x="250" y="146" width="3" height="54"/><rect x="330" y="146" width="3" height="54"/>
+      <path d="M262 200L274 130Q294 120 314 130L326 200Z"/>
+      <circle cx="372" cy="172" r="22"/><rect x="358" y="186" width="3" height="14"/><rect x="383" y="186" width="3" height="14"/>
+      <circle cx="414" cy="177" r="17"/><rect x="404" y="190" width="3" height="10"/><rect x="421" y="190" width="3" height="10"/>
+      <path d="M440 200L445 38H451L456 200Z"/>
+      <rect x="499" y="62" width="5" height="138"/><rect x="494" y="120" width="15" height="3"/>
+      <rect x="526" y="112" width="16" height="88" rx="2"/><rect x="548" y="134" width="22" height="66" rx="2"/><rect x="576" y="164" width="24" height="36"/>
+    </g>
+    <g fill="rgba(255,255,255,.07)"><rect x="148" y="96" width="24" height="3"/><rect x="148" y="124" width="24" height="3"/><rect x="200" y="90" width="26" height="3"/><rect x="200" y="120" width="26" height="3"/><rect x="200" y="152" width="26" height="3"/></g>
+    <g class="steam" fill="rgba(255,255,255,.12)"><ellipse cx="294" cy="112" rx="18" ry="9"/><ellipse cx="302" cy="94" rx="24" ry="11" style="animation-delay:-3s"/><ellipse cx="290" cy="74" rx="28" ry="12" style="animation-delay:-6s"/></g>
+    <g class="wins" fill="#ffb02e"><circle cx="160" cy="110" r="1.4"/><circle cx="160" cy="132" r="1.4"/><circle cx="186" cy="124" r="1.4"/><circle cx="213" cy="84" r="1.4"/><circle cx="213" cy="132" r="1.4"/><circle cx="534" cy="130" r="1.4"/><circle cx="559" cy="150" r="1.4"/><circle cx="588" cy="176" r="1.4"/><circle cx="40" cy="186" r="1.4"/></g>
+    <circle class="blink" cx="448" cy="35" r="2.6" fill="#ff4d4d"/><circle class="blink b2" cx="213" cy="58" r="2" fill="#ff4d4d"/>
+    <g transform="translate(502 58)"><g class="flame"><path d="M0 0C-7-8-6-17 0-30 2-20 8-14 6-6 5-2 2 0 0 0Z" fill="#ff8a1f"/><path d="M0 0C-3-5-3-10 0-17 2-11 4-7 3-3 2-1 1 0 0 0Z" fill="#ffe27a"/></g></g>
+  </svg>`;
+  const defs = `<svg width="0" height="0" style="position:absolute"><defs>
+    <radialGradient id="oilBody" cx=".4" cy=".66" r=".7"><stop offset="0" stop-color="#4a3484"/><stop offset=".45" stop-color="#14112e"/><stop offset="1" stop-color="#05050d"/></radialGradient>
+    <linearGradient id="oilRim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00e5c3"/><stop offset=".5" stop-color="#8b7bff"/><stop offset="1" stop-color="#ffb02e"/></linearGradient>
+    <radialGradient id="oilGlow" cx=".5" cy="1" r=".7"><stop offset="0" stop-color="#ffb02e" stop-opacity=".9"/><stop offset="1" stop-color="#ffb02e" stop-opacity="0"/></radialGradient>
+    <linearGradient id="silGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sil-a)"/><stop offset="1" stop-color="var(--sil-b)"/></linearGradient>
+    <radialGradient id="flareGlow"><stop offset="0" stop-color="#ff9a3a" stop-opacity=".55"/><stop offset="1" stop-color="#ff9a3a" stop-opacity="0"/></radialGradient></defs></svg>`;
+  scene.innerHTML = defs + `<div class="haze"></div>` + refinery +
+    DROP('style="--w:210px;left:-70px;top:62vh;--fx:46;--fy:.5;--b:5px;--r:-14deg;--d:7s"', "near") +
+    DROP('style="--w:160px;right:-48px;top:12vh;--fx:-40;--fy:.42;--b:4px;--r:12deg;--d:9s"', "near") +
+    DROP('style="--w:84px;left:72%;top:42vh;--fx:20;--fy:.2;--b:0px;--r:6deg;--d:8s"', "mid") +
+    DROP('style="--w:62px;left:9%;top:30vh;--fx:16;--fy:.16;--b:.4px;--r:-8deg;--d:10s"', "mid") +
+    DROP('style="--w:36px;left:42%;top:19vh;--fx:7;--fy:.07;--b:1.6px;--r:4deg;--d:11s"', "far") +
+    DROP('style="--w:28px;right:18%;top:68vh;--fx:5;--fy:.05;--b:2px;--r:-5deg;--d:12s"', "far") +
+    DROP('style="--w:22px;left:26%;top:56vh;--fx:4;--fy:.04;--b:2.4px;--r:9deg;--d:13s"', "far");
+  document.body.appendChild(scene);
   const root = document.documentElement.style;
   let raf = 0, sy = 0, px = 0, py = 0;
   const apply = () => { raf = 0; root.setProperty("--sy", sy); root.setProperty("--px", px.toFixed(3)); root.setProperty("--py", py.toFixed(3)); };
