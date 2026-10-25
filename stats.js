@@ -157,14 +157,14 @@ function compositionSection(pool) {
   const vat = p - p / (1 + VAT);
   const excise = exciseFor(state.fuel);
   const crude = excise != null ? brentPerLitre() : null;
-  const parts = [{ v: vat, color: "#7aa2f7", label: L("НДС 21%", "VAT 21%") }];
+  const parts = [{ v: vat, color: "#c9b79c", label: L("НДС 21%", "VAT 21%") }];
   const exciseNet = excise != null ? excise : 0;
-  if (excise != null) parts.push({ v: exciseNet, color: "#f5a524", label: L("Акциз", "Excise duty") });
+  if (excise != null) parts.push({ v: exciseNet, color: "#ff8a1a", label: L("Акциз", "Excise duty") });
   const net = p - vat - exciseNet;
   if (crude != null && crude < net) {
-    parts.push({ v: crude, color: "#8d6e63", label: L("Сырая нефть (Brent)", "Crude oil (Brent)") });
-    parts.push({ v: net - crude, color: "#5bc27a", label: L("Переработка, логистика, наценка", "Refining, logistics, margin") });
-  } else parts.push({ v: net, color: "#5bc27a", label: L("Продукт, логистика, наценка", "Product, logistics, margin") });
+    parts.push({ v: crude, color: "#9a5a24", label: L("Сырая нефть (Brent)", "Crude oil (Brent)") });
+    parts.push({ v: net - crude, color: "#ffd166", label: L("Переработка, логистика, наценка", "Refining, logistics, margin") });
+  } else parts.push({ v: net, color: "#ffd166", label: L("Продукт, логистика, наценка", "Product, logistics, margin") });
   const legend = parts.map((x) => `<li><i style="background:${x.color}"></i><span>${esc(x.label)}</span><b>${(x.v * 100).toFixed(1)} ${L("ц", "¢")}</b><small>${Math.round((x.v / p) * 100)}%</small></li>`).join("");
   const until = excise != null && rigaToday() <= EXCISE.until
     ? `<p class="sub">${L("Акциз временно снижен до 31.12.2026 (бензин 0,490 €/л, дизель 0,330 €/л). Доля нефти приблизительная: Brent по курсу к евро, без учёта различий сортов.", "Excise is temporarily cut until 31 Dec 2026 (petrol 0.490 €/l, diesel 0.330 €/l). The crude share is approximate: Brent converted to euro, ignoring grade differences.")}</p>`
@@ -239,8 +239,8 @@ function oilSection() {
   return `<h2>${L("Нефть", "Crude oil")}</h2>${eur ? `<p class="sub">Brent ≈ ${eur} €/${L("л", "l")} ${L("сырья", "of crude")}</p>` : ""}
   ${Charts.line({ id: "oil", labels, axis, fmt: (v) => v.toFixed(0), H: 140,
     series: [
-      { key: "wti", name: "WTI", color: "#7aa2f7", vals: cut(o.wti.series), dashed: true },
-      { key: "brent", name: "Brent", color: "#ee7458", vals: cut(o.brent.series), area: true },
+      { key: "wti", name: "WTI", color: "#c9b79c", vals: cut(o.wti.series), dashed: true },
+      { key: "brent", name: "Brent", color: "#ff7a3a", vals: cut(o.brent.series), area: true },
     ] })}`;
 }
 

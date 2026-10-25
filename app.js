@@ -272,7 +272,7 @@ const t = (k) => I18N[state.lang][k];
 function applyTheme() {
   document.documentElement.dataset.theme = state.theme;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = state.theme === "light" ? "#edefec" : "#16181a";
+  if (meta) meta.content = state.theme === "light" ? "#f2ece2" : "#050403";
 }
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -957,7 +957,7 @@ function journalCharts(s) {
   if (cons.length >= 2) {
     out += `<h3>${ru ? "Расход топлива" : "Consumption"}</h3>${Charts.line({ id: "cons", labels: cons.map((e) => e.t.slice(8, 10) + "." + e.t.slice(5, 7)), fmt: (v) => v.toFixed(1),
       hint: ru ? "Проведите по графику, чтобы увидеть расход по заправкам." : "Drag across the chart to read each fill-up.",
-      series: [{ key: "c", name: ru ? "л/100 км" : "l/100 km", color: "#00e5c3", vals: cons.map((e) => s.cons[e.id]), area: true }] })}`;
+      series: [{ key: "c", name: ru ? "л/100 км" : "l/100 km", color: "#ffc247", vals: cons.map((e) => s.cons[e.id]), area: true }] })}`;
   }
   return out;
 }
@@ -1322,15 +1322,15 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const k = "d" + dropN++;
     const P = "M50 2C55 24 90 52 90 87A40 40 0 0 1 10 87C10 52 45 24 50 2Z";
     return `<svg class="drop ${cls}" viewBox="0 0 100 130" ${n}><defs>
-      <radialGradient id="${k}b" cx=".42" cy=".7" r=".72"><stop offset="0" stop-color="#0b0a1c" stop-opacity=".92"/><stop offset=".62" stop-color="#17133a" stop-opacity=".78"/><stop offset=".9" stop-color="#6b57c9" stop-opacity=".62"/><stop offset="1" stop-color="#b9a8ff" stop-opacity=".8"/></radialGradient>
+      <radialGradient id="${k}b" cx=".42" cy=".7" r=".72"><stop offset="0" stop-color="#050302" stop-opacity=".97"/><stop offset=".6" stop-color="#150c05" stop-opacity=".92"/><stop offset=".9" stop-color="#8a4a12" stop-opacity=".75"/><stop offset="1" stop-color="#ffc06a" stop-opacity=".9"/></radialGradient>
       <linearGradient id="${k}s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00e5c3" stop-opacity=".0"/><stop offset=".35" stop-color="#00e5c3" stop-opacity=".35"/><stop offset=".65" stop-color="#ff7ab8" stop-opacity=".3"/><stop offset="1" stop-color="#ffb02e" stop-opacity=".0"/></linearGradient>
-      <radialGradient id="${k}g" cx=".5" cy="1" r=".75"><stop offset="0" stop-color="#ffb02e" stop-opacity=".7"/><stop offset="1" stop-color="#ffb02e" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${k}g" cx=".5" cy="1" r=".75"><stop offset="0" stop-color="#ff9d1a" stop-opacity=".8"/><stop offset="1" stop-color="#ff9d1a" stop-opacity="0"/></radialGradient>
       <clipPath id="${k}c"><path d="${P}"/></clipPath>
       <filter id="${k}f" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter></defs>
       <path d="${P}" fill="url(#${k}b)"/>
-      <g clip-path="url(#${k}c)"><ellipse cx="30" cy="120" rx="30" ry="22" fill="#00e5c3" opacity=".18" filter="url(#${k}f)"/><ellipse cx="72" cy="122" rx="28" ry="20" fill="#ff7ab8" opacity=".18" filter="url(#${k}f)"/><ellipse cx="50" cy="128" rx="40" ry="24" fill="url(#${k}g)"/>
+      <g clip-path="url(#${k}c)"><ellipse cx="30" cy="120" rx="30" ry="22" fill="#ff7a1a" opacity=".3" filter="url(#${k}f)"/><ellipse cx="72" cy="122" rx="28" ry="20" fill="#ffd166" opacity=".26" filter="url(#${k}f)"/><ellipse cx="50" cy="128" rx="40" ry="24" fill="url(#${k}g)"/>
         <ellipse cx="33" cy="76" rx="6" ry="22" transform="rotate(12 33 76)" fill="#fff" opacity=".42" filter="url(#${k}f)"/></g>
-      <path d="${P}" fill="none" stroke="#c9bcff" stroke-opacity=".34" stroke-width="1.2"/>
+      <path d="${P}" fill="none" stroke="#ffd9a0" stroke-opacity=".5" stroke-width="1.2"/>
       <ellipse cx="40" cy="52" rx="2.2" ry="3.4" transform="rotate(26 40 52)" fill="#fff" opacity=".7"/></svg>`;
   };
   // Deterministic pseudo-random so the skyline is the same on every load
@@ -1401,13 +1401,13 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
   const refinery = buildRefinery();
   scene.innerHTML = `<div class="haze"></div>` + refinery + `<div class="ground"></div>` +
-    DROP('style="--w:260px;left:-80px;top:58vh;--fx:46;--fy:.5;--b:5px;--r:-14deg;--d:7s"', "near") +
-    DROP('style="--w:200px;right:-60px;top:10vh;--fx:-40;--fy:.42;--b:4px;--r:12deg;--d:9s"', "near") +
+    DROP('style="--w:260px;left:-80px;top:58vh;--fx:46;--fy:.5;--b:2.2px;--r:-14deg;--d:7s"', "near") +
+    DROP('style="--w:200px;right:-60px;top:10vh;--fx:-40;--fy:.42;--b:1.8px;--r:12deg;--d:9s"', "near") +
     DROP('style="--w:110px;left:68%;top:40vh;--fx:20;--fy:.2;--b:0px;--r:6deg;--d:8s"', "mid") +
-    DROP('style="--w:80px;left:6%;top:30vh;--fx:16;--fy:.16;--b:.4px;--r:-8deg;--d:10s"', "mid") +
-    DROP('style="--w:48px;left:42%;top:19vh;--fx:7;--fy:.07;--b:1.6px;--r:4deg;--d:11s"', "far") +
-    DROP('style="--w:38px;right:18%;top:70vh;--fx:5;--fy:.05;--b:2px;--r:-5deg;--d:12s"', "far") +
-    DROP('style="--w:30px;left:28%;top:52vh;--fx:4;--fy:.04;--b:2.4px;--r:9deg;--d:13s"', "far");
+    DROP('style="--w:80px;left:6%;top:30vh;--fx:16;--fy:.16;--b:0px;--r:-8deg;--d:10s"', "mid") +
+    DROP('style="--w:48px;left:42%;top:19vh;--fx:7;--fy:.07;--b:.6px;--r:4deg;--d:11s"', "far") +
+    DROP('style="--w:38px;right:18%;top:70vh;--fx:5;--fy:.05;--b:.8px;--r:-5deg;--d:12s"', "far") +
+    DROP('style="--w:30px;left:28%;top:52vh;--fx:4;--fy:.04;--b:1px;--r:9deg;--d:13s"', "far");
   document.body.appendChild(scene);
   const root = scene.style;  // set on the scene only, so scrolling does not restyle the whole page
   let raf = 0, sy = 0, px = 0, py = 0;
