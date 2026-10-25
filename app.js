@@ -172,6 +172,7 @@ Object.assign(I18N.ru, {
   mapEmpty: "На карте нет станций с точной ценой. Переключитесь на «Все заправки».",
   cmpH: "Сравнение заправок", cmpBtn: "Сравнить", cmpAdd: "Добавить к сравнению", cmpRemove: "Убрать из сравнения", cmpMax: "Можно сравнить до 3 заправок", cmpClear: "Сбросить", cmpPrice: "Цена", cmpVsBest: "К лучшей", cmpBest: "Лучшая цена", cmpTank: "Бак", cmpDist: "Расстояние", cmpUpd: "Цена изменена", cmpRel: "Надёжность", cmpOther: "Другое топливо", cmpNeed: "Выберите минимум 2 заправки.",
   relHigh: "Подтверждена сетью", relMid: "От водителей", relLow: "Оценка по сети", relStale: "Возможно устарела", vsAvgLbl: "к средней по списку",
+  nearestTag: "Ближайшая",
   mvMap: "Карта", mvBoth: "Вместе", mvList: "Список", onMap: "На карте",
   mapCheapest: "Самая дешёвая", mapHint: "Цвет цены: зелёный дешевле, красный дороже. Пунктир и синий: оценка по минимуму сети.",
   jH: "Журнал заправок", jSub: "Записи хранятся только на этом телефоне.",
@@ -203,6 +204,7 @@ Object.assign(I18N.en, {
   mapEmpty: "No stations with an exact price on the map. Switch to “All stations”.",
   cmpH: "Compare stations", cmpBtn: "Compare", cmpAdd: "Add to comparison", cmpRemove: "Remove from comparison", cmpMax: "You can compare up to 3 stations", cmpClear: "Clear", cmpPrice: "Price", cmpVsBest: "vs best", cmpBest: "Best price", cmpTank: "Tank", cmpDist: "Distance", cmpUpd: "Price changed", cmpRel: "Reliability", cmpOther: "Other fuels", cmpNeed: "Pick at least 2 stations.",
   relHigh: "Confirmed by the chain", relMid: "From drivers", relLow: "Chain-minimum estimate", relStale: "May be outdated", vsAvgLbl: "vs list average",
+  nearestTag: "Nearest",
   mvMap: "Map", mvBoth: "Split", mvList: "List", onMap: "On map",
   mapCheapest: "Cheapest", mapHint: "Price colour: green is cheaper, red is dearer. Dashed blue: estimate from the chain minimum.",
   jH: "Fill-up log", jSub: "Entries are stored on this phone only.",
@@ -755,17 +757,19 @@ function renderList(rows, onMap = false) {
   const pool = exactPrices.length ? exactPrices : byPrice.map((r) => r.price);
   const lo = Math.min(...pool), hi = Math.max(...pool);
   const limit = state.showAll ? rows.length : 8;
+  let nearId = null;
+  if (state.loc) { let bd = Infinity; for (const r of rows) if (r.dist != null && r.dist < bd) { bd = r.dist; nearId = r.st.id; } }
   const items = rows.slice(0, limit).map((r, i) => {
     const chain = state.data.chains[r.st.chain];
     const note = !r.exact
       ? `<span class="note warn">${r.cell.k === "min" ? t("minShort") : kindLabel(r)}</span>`
       : r.cell.k === "user" ? `<span class="note">${kindLabel(r)}</span>` : "";
     const dist = r.dist != null ? `${r.dist.toFixed(1)} ${t("km")}, ` : "";
-    return `<li class="row ${r.exact ? "heat" : "est"}" data-id="${esc(r.st.id)}" style="--i:${Math.min(i, 14)};--h:${heatHue(r.price, lo, hi)}">
+    return `<li class="row ${r.exact ? "heat" : "est"} ${r.st.id === nearId ? "near" : ""}" data-id="${esc(r.st.id)}" style="--i:${Math.min(i, 14)};--h:${heatHue(r.price, lo, hi)}">
       <span class="rank">${i + 1}</span>
       <div class="who"><b><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</b>
         <span>${esc(r.st.address)}</span>${note}
-        <span class="note">${dist}${dayWord(r.cell)}</span></div>
+        <span class="note">${r.st.id === nearId ? `<b class="neartag">◎ ${t("nearestTag")}</b> ` : ""}${dist}${dayWord(r.cell)}</span></div>
       <div class="rp"><b class="hp">${pylonStatic(r.price)}</b>${r.disc > 0 ? `<s class="was">${fmtPrice(r.base)}</s>` : ""}
         <div class="ra">${heartBtn(r.st.id)}${cmpBtn(r.st.id)}${onMap ? `<button class="ra-btn" data-act="onmap" data-v="${esc(r.st.id)}">${ICON.map}${t("onMap")}</button>` : ""}<a href="${linkWaze(r.st)}" target="_blank" rel="noopener">${ICON.nav}${t("navTo")}</a></div>
         <button class="more-prices" data-act="row" data-v="${esc(r.st.id)}" aria-expanded="${state.open === r.st.id}">${t("allPrices")}</button></div>

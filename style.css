@@ -857,3 +857,9 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 .mk.sel .pin::before { content: ""; position: absolute; inset: -9px; border-radius: 999px; border: 2px solid rgba(255, 176, 46, .8); animation: ring 3.4s ease-out infinite; pointer-events: none; }
 .mk.best .pin::before { animation-duration: 3.4s; }
 @keyframes breathe { 0%, 100% { opacity: .2; } 50% { opacity: .75; } }
+
+/* nearest station: a soft sweep of the row's colour from the left strip to the right */
+.row.near { position: relative; overflow: hidden; }
+.row.near::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, hsl(var(--h) 85% 55% / .0) 0%, hsl(var(--h) 85% 55% / .32) 38%, hsl(var(--h) 90% 62% / .16) 55%, transparent 75%); transform: translateX(-105%); animation: nearSweep 4.2s cubic-bezier(.45, 0, .25, 1) infinite; will-change: transform; }
+@keyframes nearSweep { 0% { transform: translateX(-105%); opacity: 1; } 55% { transform: translateX(10%); opacity: 1; } 80% { transform: translateX(105%); opacity: 0; } 100% { transform: translateX(105%); opacity: 0; } }
+.neartag { color: hsl(var(--h) 80% 62%); font-weight: 700; }
