@@ -908,3 +908,8 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 .drop.mid { opacity: .55; }
 /* every row keeps the long colour strip on the left; estimates get a softer one */
 .row.est { box-shadow: inset 3px 0 0 hsl(var(--h) 70% 52% / .5); background: linear-gradient(90deg, hsl(var(--h) 70% 50% / .07), transparent 32%); }
+
+/* crisp green: a bright strip with a short fade, not a wide haze */
+.row.heat { background: linear-gradient(90deg, hsl(var(--h) 72% 42% / .3), hsl(var(--h) 72% 42% / .1) 16%, transparent 30%); }
+.row.est { background: linear-gradient(90deg, hsl(var(--h) 66% 40% / .2), hsl(var(--h) 66% 40% / .06) 14%, transparent 26%); }
+.row.near::after { background: repeating-linear-gradient(90deg, hsl(var(--h) 85% 55% / 0) 0%, hsl(var(--h) 88% 58% / .3) 7%, hsl(var(--h) 90% 62% / .12) 13%, hsl(var(--h) 85% 55% / 0) 21%, hsl(var(--h) 85% 55% / 0) 50%); }
