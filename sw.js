@@ -1,5 +1,5 @@
 /* Degvielas Radars service worker: app shell offline, data network-first. */
-const VERSION = "v9";
+const VERSION = "v10";
 // The preview (/next/) and the main site share one origin, so each keeps its own cache names.
 const PREFIX = self.location.pathname.includes("/next/") ? "drn" : "dr";
 const SHELL = `${PREFIX}-shell-${VERSION}`;
@@ -32,7 +32,7 @@ self.addEventListener("fetch", (e) => {
     return;
   }
   e.respondWith(
-    fetch(req).then((res) => {
+    fetch(req, { cache: "no-cache" }).then((res) => {
       const copy = res.clone();
       caches.open(SHELL).then((c) => c.put(req, copy));
       return res;
