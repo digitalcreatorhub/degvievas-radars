@@ -124,14 +124,19 @@
           e.anchor = document.createElement("div");
           e.anchor.className = "anchor";
           e.el.appendChild(e.anchor);
-          if (!m.noPick) e.el.addEventListener("click", (ev) => { ev.stopPropagation(); if (!this.dragged) this.onPick(e.id); });
+          if (!m.noPick) e.el.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            if (this.dragged) return;
+            if (ev.target.closest(".cl")) { this.flyTo(e.lat, e.lng, Math.min(this.z + 2, MAXZ), 0.5, 450); return; }
+            this.onPick(e.id);
+          });
           this.marks.appendChild(e.el);
           this.markers.set(m.id, e);
         }
         const cls = "mk" + (m.cls ? " " + m.cls : "");
         if (e.cls !== cls) { e.cls = cls; e.el.className = cls; }
         if (e.html !== m.html || e.dotHtml !== m.dotHtml) { e.html = m.html; e.dotHtml = m.dotHtml; e.mode = null; }
-        e.lat = m.lat; e.lng = m.lng; e.prio = m.prio ?? 1e9; e.force = !!m.force;
+        e.lat = m.lat; e.lng = m.lng; e.prio = m.prio ?? 1e9; e.force = !!m.force; e.noCluster = !!m.noCluster;
       }
       for (const [id, e] of this.markers) if (!seen.has(id)) { e.el.remove(); this.markers.delete(id); }
       this.order = [...this.markers.values()].sort((a, b) => a.prio - b.prio);
@@ -144,23 +149,31 @@
       for (const e of this.order) {
         const x = Math.round(mercX(e.lng, z) - cx + W / 2), y = Math.round(mercY(e.lat, z) - cy + H / 2);
         const vis = x > -50 && x < W + 50 && y > -20 && y < H + 70;
-        if (vis !== e.shown) { e.shown = vis; e.el.style.display = vis ? "" : "none"; }
-        if (!vis) continue;
+        e.n = 0;
+        if (!vis) { if (e.shown !== false) { e.shown = false; e.el.style.display = "none"; } continue; }
         e.el.style.transform = `translate(${x}px,${y}px)`;
-        let mode = "label";
+        let mode = "label", host = null;
         if (!e.force && e.dotHtml != null) {
           const bx = x - 31, by = y - 34;
-          let clash = false;
-          for (const p of placed) if (bx < p[2] && bx + 62 > p[0] && by < p[3] && by + 34 > p[1]) { clash = true; break; }
-          if (clash) mode = "dot"; else placed.push([bx, by, bx + 62, by + 34]);
+          for (const p of placed) if (bx < p[2] && bx + 62 > p[0] && by < p[3] && by + 34 > p[1]) { host = p[4]; break; }
+          if (host) mode = e.noCluster ? "dot" : "hidden";
+          else placed.push([bx, by, bx + 62, by + 34, e]);
         } else {
-          placed.push([x - 31, y - 34, x + 31, y]);
+          placed.push([x - 31, y - 34, x + 31, y, e]);
         }
-        if (mode !== e.mode) {
-          e.mode = mode;
-          e.anchor.innerHTML = mode === "label" ? e.html : e.dotHtml;
-          e.el.style.zIndex = mode === "label" ? (e.force ? 2000 : 1000 - Math.min(e.prio, 900)) : 1;
-        }
+        e._mode = mode;
+        if (mode === "hidden") host.n++;
+        const show = mode !== "hidden";
+        if (show !== e.shown) { e.shown = show; e.el.style.display = show ? "" : "none"; }
+      }
+      for (const e of this.order) {
+        if (!e.shown) { e.mode = null; continue; }
+        const mode = e._mode, key = mode + ":" + e.n;
+        if (key === e.mode) continue;
+        e.mode = key;
+        const badge = mode === "label" && e.n > 0 ? `<span class="cl" role="button" aria-label="+${e.n}">+${e.n}</span>` : "";
+        e.anchor.innerHTML = (mode === "label" ? e.html : e.dotHtml) + badge;
+        e.el.style.zIndex = mode === "label" ? (e.force ? 2000 : 1000 - Math.min(e.prio, 900)) : 1;
       }
     }
 

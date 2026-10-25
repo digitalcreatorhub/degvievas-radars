@@ -170,6 +170,9 @@ Object.assign(I18N.ru, {
   share: "Поделиться", copied: "Скопировано",
   mapFit: "Показать все", mapZoomIn: "Приблизить", mapZoomOut: "Отдалить", mapMe: "Где я",
   mapEmpty: "На карте нет станций с точной ценой. Переключитесь на «Все заправки».",
+  cmpH: "Сравнение заправок", cmpBtn: "Сравнить", cmpAdd: "Добавить к сравнению", cmpRemove: "Убрать из сравнения", cmpMax: "Можно сравнить до 3 заправок", cmpClear: "Сбросить", cmpPrice: "Цена", cmpVsBest: "К лучшей", cmpBest: "Лучшая цена", cmpTank: "Бак", cmpDist: "Расстояние", cmpUpd: "Цена изменена", cmpRel: "Надёжность", cmpOther: "Другое топливо", cmpNeed: "Выберите минимум 2 заправки.",
+  relHigh: "Подтверждена сетью", relMid: "От водителей", relLow: "Оценка по сети", relStale: "Возможно устарела", vsAvgLbl: "к средней по списку",
+  mvMap: "Карта", mvBoth: "Вместе", mvList: "Список", onMap: "На карте",
   mapCheapest: "Самая дешёвая", mapHint: "Цвет цены: зелёный дешевле, красный дороже. Пунктир и синий: оценка по минимуму сети.",
   jH: "Журнал заправок", jSub: "Записи хранятся только на этом телефоне.",
   jDate: "Дата", jLiters: "Литров", jPrice: "Цена, €/л", jOdo: "Пробег, км", jFull: "Полный бак",
@@ -198,6 +201,9 @@ Object.assign(I18N.en, {
   share: "Share", copied: "Copied",
   mapFit: "Show all", mapZoomIn: "Zoom in", mapZoomOut: "Zoom out", mapMe: "My location",
   mapEmpty: "No stations with an exact price on the map. Switch to “All stations”.",
+  cmpH: "Compare stations", cmpBtn: "Compare", cmpAdd: "Add to comparison", cmpRemove: "Remove from comparison", cmpMax: "You can compare up to 3 stations", cmpClear: "Clear", cmpPrice: "Price", cmpVsBest: "vs best", cmpBest: "Best price", cmpTank: "Tank", cmpDist: "Distance", cmpUpd: "Price changed", cmpRel: "Reliability", cmpOther: "Other fuels", cmpNeed: "Pick at least 2 stations.",
+  relHigh: "Confirmed by the chain", relMid: "From drivers", relLow: "Chain-minimum estimate", relStale: "May be outdated", vsAvgLbl: "vs list average",
+  mvMap: "Map", mvBoth: "Split", mvList: "List", onMap: "On map",
   mapCheapest: "Cheapest", mapHint: "Price colour: green is cheaper, red is dearer. Dashed blue: estimate from the chain minimum.",
   jH: "Fill-up log", jSub: "Entries are stored on this phone only.",
   jDate: "Date", jLiters: "Litres", jPrice: "Price, €/l", jOdo: "Odometer, km", jFull: "Full tank",
@@ -257,6 +263,8 @@ const state = {
   installed: false,
   data: null, history: null, oil: null,
   mapMode: store.get("mapmode", "all"),
+  mapView: store.get("mapview", "map"),
+  cmp: [], cmpOpen: false,
   fpm: store.get("fpm", 4),
   trendRange: "30",
   heat: false,
@@ -294,6 +302,7 @@ function toast(msg) {
 /* ---------- icons ---------- */
 const svg = (inner, size = 20, extra = "") => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${inner}</svg>`;
 const ICON = {
+  cmp: svg('<path d="M7 4v16M17 4v16"/><path d="M3 8l4-4 4 4M13 16l4 4 4-4"/>', 20),
   gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
   refresh: svg('<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>'),
   heart: svg('<path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21z"/>', 20, 'class="hs"'),
@@ -531,6 +540,21 @@ const heartBtn = (id, cls = "heart") => {
   return `<button class="${cls}" data-act="fav" data-v="${esc(id)}" aria-pressed="${on}" aria-label="${on ? t("removeFav") : t("addFav")}">${ICON.heart}</button>`;
 };
 
+const cmpBtn = (id, cls = "cmp-btn") => {
+  const on = state.cmp.includes(id);
+  return `<button class="${cls}" data-act="cmp" data-v="${esc(id)}" aria-pressed="${on}" aria-label="${on ? t("cmpRemove") : t("cmpAdd")}" title="${on ? t("cmpRemove") : t("cmpAdd")}">${ICON.cmp}</button>`;
+};
+function reliability(st, cell, fuel) {
+  const exact = isExact(cell, st, fuel);
+  if (st.stale) return { lvl: 0, key: "relStale" };
+  if (cell.k === "user") return exact ? { lvl: 2, key: "relMid" } : { lvl: 0, key: "relStale" };
+  if (!exact) return { lvl: 1, key: "relLow" };
+  return { lvl: 3, key: "relHigh" };
+}
+function relBadge(rel) {
+  return `<span class="rel l${rel.lvl}" title="${t(rel.key)}"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>${t(rel.key)}${rel.lvl === 0 ? " ⚠" : ""}</span>`;
+}
+
 function renderHeader() {
   const d = state.data;
   let meta = "";
@@ -636,7 +660,7 @@ function renderHero(rows) {
   let delta = "";
   if (ch) {
     const c = Math.abs(ch.delta) * 100;
-    delta = `<p class="delta">${ch.src === "visit" ? t("sinceVisit") : t("vsYest")}: <span class="${ch.delta < 0 ? "down" : "up"}">${ch.delta < 0 ? "▼ −" : "▲ +"}${c.toFixed(1)} ${t("cents")}</span> (${fmtPrice(ch.prev)} €)</p>`;
+    delta = `<p class="delta"><span class="wn ${ch.delta < 0 ? "down" : "up"}"><s>${fmtPrice(ch.prev)}</s><b>${fmtPrice(top.base)}</b></span> <span class="${ch.delta < 0 ? "down" : "up"}">${ch.delta < 0 ? "▼ −" : "▲ +"}${c.toFixed(1)} ${t("cents")}</span> · ${ch.src === "visit" ? t("sinceVisit") : t("vsYest")}</p>`;
   } else if (!state.area && !state.chain && historyDelta()) {
     delta = `<p class="delta">${t("vsYest")}: ${t("same")}</p>`;
   }
@@ -723,7 +747,7 @@ function renderSort() {
   const opts = [["price", t("sortPrice")], ["near", t("sortNear")], ["fresh", t("sortFresh")]];
   return `<div class="seg slim sort" role="group">${opts.map(([k, l]) => `<button data-act="sort" data-v="${k}" aria-pressed="${(state.sort === k && (k !== "near" || state.loc)) ? "true" : "false"}">${l}</button>`).join("")}</div>`;
 }
-function renderList(rows) {
+function renderList(rows, onMap = false) {
   if (!rows.length) return "";
   const byPrice = rows;
   rows = sortedRows(rows);
@@ -743,7 +767,7 @@ function renderList(rows) {
         <span>${esc(r.st.address)}</span>${note}
         <span class="note">${dist}${dayWord(r.cell)}</span></div>
       <div class="rp"><b class="hp">${pylonStatic(r.price)}</b>${r.disc > 0 ? `<s class="was">${fmtPrice(r.base)}</s>` : ""}
-        <div class="ra">${heartBtn(r.st.id)}<a href="${linkWaze(r.st)}" target="_blank" rel="noopener">${ICON.nav}${t("navTo")}</a></div>
+        <div class="ra">${heartBtn(r.st.id)}${cmpBtn(r.st.id)}${onMap ? `<button class="ra-btn" data-act="onmap" data-v="${esc(r.st.id)}">${ICON.map}${t("onMap")}</button>` : ""}<a href="${linkWaze(r.st)}" target="_blank" rel="noopener">${ICON.nav}${t("navTo")}</a></div>
         <button class="more-prices" data-act="row" data-v="${esc(r.st.id)}" aria-expanded="${state.open === r.st.id}">${t("allPrices")}</button></div>
       ${state.open === r.st.id ? renderDetail(r.st) : ""}
     </li>`;
@@ -863,11 +887,18 @@ function renderMapView() {
       const best = rows[0] && rows[0].exact && rows[0].st.id === st.id;
       pop = `<div class="mpop ${fresh ? "in" : ""}">
         <div class="mp-head"><span class="mp-n"><i class="dot" style="background:${esc(chain.color)}"></i><b>${esc(chain.name)}</b>${best ? `<span class="tag good">${t("mapCheapest")}</span>` : ""}</span>
-          ${heartBtn(st.id)}<button class="icon-btn sm" data-act="mclose" aria-label="${t("close")}">${ICON.close}</button></div>
+          ${cmpBtn(st.id)}${heartBtn(st.id)}<button class="icon-btn sm" data-act="mclose" aria-label="${t("close")}">${ICON.close}</button></div>
         <p class="addr">${esc(st.address)}</p>
         <div class="mp-price"><span class="pp">${rollPrice(cell.p - disc, "pop", "bp")}</span><span class="u">€/L</span>
           <span class="tag ${exact ? "good" : "warn"}">${kindLabel(row)}</span></div>
         ${(() => { const pc = exact ? cheaperThanPct({ exact, price: cell.p - disc }) : null; return pc == null ? "" : Charts.meter(pc, state.lang === "ru" ? `Дешевле, чем у ${pc}% станций` : `Cheaper than ${pc}% of stations`); })()}
+        ${(() => {
+          const ex = rows.filter((r) => r.exact).map((r) => r.price);
+          const avg = ex.length ? ex.reduce((a, b) => a + b, 0) / ex.length : null;
+          const d = exact && avg != null ? (cell.p - disc - avg) * 100 : null;
+          const dTxt = d == null ? "" : Math.abs(d) < 0.05 ? `<span class="vsavg">= ${t("vsAvgLbl")}</span>` : `<span class="vsavg ${d < 0 ? "down" : "up"}">${d < 0 ? "▼ −" : "▲ +"}${Math.abs(d).toFixed(1)} ${t("cents")} ${t("vsAvgLbl")}</span>`;
+          return `<div class="mp-meta">${relBadge(reliability(st, cell, state.fuel))}${dTxt}${cell.ch ? `<span class="upd">${dayWord(cell)}</span>` : ""}${state.cmp.length >= 2 ? `<button class="cmp-chip" data-act="cmpopen">${ICON.cmp}${t("cmpBtn")} · ${state.cmp.length}/3</button>` : ""}</div>`;
+        })()}
         <div class="actions">
           <a class="btn" href="${linkWaze(st)}" target="_blank" rel="noopener">${t("waze")}</a>
           <a class="btn ghost" href="${linkGmaps(st)}" target="_blank" rel="noopener">${t("gmaps")}</a>
@@ -878,12 +909,16 @@ function renderMapView() {
       </div>`;
     } else lastPop = null;
   } else lastPop = null;
-  return `${fuelTabs()}
-  <div class="seg slim" role="group">
+  const mv = state.mapView;
+  const views = [["map", t("mvMap")], ["split", t("mvBoth")], ["list", t("mvList")]];
+  const seg = `<div class="mv-row"><div class="seg slim" role="group">
     <button data-act="mapmode" data-v="exact" aria-pressed="${state.mapMode === "exact"}">${t("exact")}</button>
     <button data-act="mapmode" data-v="all" aria-pressed="${state.mapMode === "all"}">${t("all")}</button>
-  </div>
-  <div class="mapbox">
+  </div><div class="seg slim mv" role="group">${views.map(([k, l]) => `<button data-act="mview" data-v="${k}" aria-pressed="${mv === k}">${l}</button>`).join("")}</div></div>`;
+  const listHtml = mv !== "map" ? renderList(rows, true) : "";
+  if (mv === "list") return `${fuelTabs()}${seg}${listHtml || `<div class="empty"><b>${t("emptyH")}</b>${t("mapEmpty")}</div>`}`;
+  return `${fuelTabs()}${seg}
+  <div class="mapbox ${mv === "split" ? "short" : ""}">
     <div id="mapslot"></div>
     <div class="mm-ctl zoom">
       <button data-act="mzoom" data-v="1" aria-label="${t("mapZoomIn")}">${ICON.plus}</button>
@@ -895,7 +930,7 @@ function renderMapView() {
     ${rows.length ? "" : `<div class="mm-empty">${t("mapEmpty")}</div>`}
     ${pop}
   </div>
-  <p class="sub" style="margin-top:10px">${t("mapHint")}</p>`;
+  ${mv === "split" ? listHtml : `<p class="sub" style="margin-top:10px">${t("mapHint")}</p>`}`;
 }
 
 function attachMap() {
@@ -921,10 +956,11 @@ function attachMap() {
     const chain = state.data.chains[r.st.chain];
     const hue = r.exact ? heatHue(r.price, lo, hi) : 220;
     const sel = state.selected === r.st.id;
+    const g = r.exact && hi > lo ? clamp(1 - (r.price - lo) / (hi - lo), 0, 1) : 0;   // 1 = cheapest, glows most
     return {
-      id: r.st.id, lat: r.st.lat, lng: r.st.lng, prio: r.exact ? i : 1000 + i, force: sel || (i === 0 && r.exact),
+      id: r.st.id, noCluster: state.heat, lat: r.st.lat, lng: r.st.lng, prio: r.exact ? i : 1000 + i, force: sel || (i === 0 && r.exact),
       cls: `${sel ? "sel " : ""}${i === 0 && r.exact ? "best " : ""}${r.exact ? "" : "est"}`.trim(),
-      html: state.heat && !sel ? `<span class="blob" style="--h:${hue}"></span>` : `<span class="pin" style="--h:${hue};--c:${esc(chain.color)}"><i class="pdot"></i><b>${fmtPrice(r.price)}</b></span>`,
+      html: state.heat && !sel ? `<span class="blob" style="--h:${hue}"></span>` : `<span class="pin" style="--h:${hue};--c:${esc(chain.color)};--g:${g.toFixed(2)}"><i class="pdot"></i><b>${fmtPrice(r.price)}</b></span>`,
       dotHtml: state.heat && !sel ? `<span class="blob" style="--h:${hue}"></span>` : `<span class="pin mini" style="--h:${hue};--c:${esc(chain.color)}"></span>`,
     };
   });
@@ -1023,6 +1059,46 @@ function renderSheet() {
   </section>`;
 }
 
+function renderCmpBar() {
+  if (!state.cmp.length || state.cmpOpen || (state.view === "map" && state.selected && state.mapView !== "list")) return "";
+  return `<div class="cmpbar"><button class="go" data-act="cmpopen" ${state.cmp.length < 2 ? "disabled" : ""}>${ICON.cmp}${t("cmpBtn")} · ${state.cmp.length}/3</button><button class="x" data-act="cmpclear" aria-label="${t("cmpClear")}">${ICON.close}</button></div>`;
+}
+function renderCompare() {
+  const sts = state.cmp.map(stationById).filter(Boolean);
+  const cols = sts.map((st) => {
+    const cell = st.fuels[state.fuel];
+    if (!cell) return { st, none: true };
+    const disc = discOf(st.chain);
+    const price = Math.round((cell.p - disc) * 1000) / 1000;
+    const dist = state.loc ? haversineKm(state.loc, st) * ROAD_FACTOR : null;
+    const L = Math.max(0, +state.liters || 0);
+    const cost = dist != null && state.road ? price * (L + (2 * dist * state.consumption) / 100) : price * L;
+    return { st, cell, price, dist, cost, exact: isExact(cell, st, state.fuel), chain: state.data.chains[st.chain], rel: reliability(st, cell, state.fuel) };
+  });
+  const ok = cols.filter((c) => !c.none);
+  const best = ok.length ? Math.min(...ok.map((c) => c.price)) : null;
+  const head = cols.map((c) => `<div class="cc head"><b><i class="dot" style="background:${esc(c.none ? "#888" : c.chain.color)}"></i>${esc(state.data.chains[c.st.chain].name)}</b><span>${esc(c.st.address)}</span></div>`).join("");
+  const row = (label, fn) => `<div class="cl-lbl">${label}</div>${cols.map((c) => `<div class="cc">${c.none ? "—" : fn(c)}</div>`).join("")}`;
+  const Lbl = state.lang === "ru" ? "л" : "l";
+  const body = [
+    row(t("cmpPrice"), (c) => `<b class="cp ${c.price === best ? "best" : ""}">${fmtPrice(c.price)}</b><small>€/${Lbl}</small>`),
+    row(t("cmpVsBest"), (c) => c.price === best ? `<span class="tag good">★ ${t("cmpBest")}</span>` : `<span class="vsavg up">▲ +${((c.price - best) * 100).toFixed(1)} ${t("cents")}</span>`),
+    row(`${t("cmpTank")} ${state.liters} ${Lbl}`, (c) => `<b>${c.cost.toFixed(2)} €</b>${c.cost - Math.min(...ok.map((x) => x.cost)) > 0.004 ? `<small>+${(c.cost - Math.min(...ok.map((x) => x.cost))).toFixed(2)} €</small>` : ""}`),
+    state.loc ? row(t("cmpDist"), (c) => `${c.dist.toFixed(1)} ${t("km")}`) : "",
+    row(t("cmpUpd"), (c) => c.cell.ch ? dayWord(c.cell).replace(/^[^ ]+ /, "") : "—"),
+    row(t("cmpRel"), (c) => relBadge(c.rel)),
+  ].join("");
+  const others = FUEL_ORDER.filter((f) => f !== state.fuel && sts.some((st) => st.fuels[f]));
+  const oth = others.length ? `<h3>${t("cmpOther")}</h3><div class="cmp-grid" style="--n:${cols.length}">${others.map((f) => `<div class="cl-lbl">${t("fuels")[f]}</div>${sts.map((st) => `<div class="cc">${st.fuels[f] ? `<b>${fmtPrice(st.fuels[f].p - discOf(st.chain))}</b>` : "—"}</div>`).join("")}`).join("")}</div>` : "";
+  return `<div class="scrim in" data-act="cmpclose"></div>
+  <section class="sheet cmp in" role="dialog" aria-modal="true" aria-label="${t("cmpH")}">
+    <div class="grab"></div>
+    <div class="sh-head"><h2>${t("cmpH")} · ${t("fuels")[state.fuel]}</h2><button class="icon-btn sm" data-act="cmpclose" aria-label="${t("close")}">${ICON.close}</button></div>
+    ${sts.length < 2 ? `<p class="sub">${t("cmpNeed")}</p>` : `<div class="cmp-grid" style="--n:${cols.length}"><div></div>${head}${body}</div>${oth}`}
+    <button class="btn ghost cmp-clear" data-act="cmpclear">${t("cmpClear")}</button>
+  </section>`;
+}
+
 let navShown = 0;
 function renderNav() {
   const items = [["prices", ICON.prices, t("navPrices")], ["map", ICON.map, t("navMap")], ["stats", ICON.stats, t("navStats")], ["journal", ICON.journal, t("navJournal")]];
@@ -1058,8 +1134,8 @@ function render(anim = true) {
   else if (state.view === "journal") body = renderJournal();
   else body = renderPrices();
   app.innerHTML = `<div class="wrap v-${state.view} ${anim ? "enter" : ""}">${renderHeader()}${body}
-    <footer class="foot"><p>${t("source")}</p></footer></div>${renderNav()}${state.sheet ? renderSheet() : ""}`;
-  document.body.classList.toggle("noscroll", state.sheet);
+    <footer class="foot"><p>${t("source")}</p></footer></div>${renderNav()}${renderCmpBar()}${state.sheet ? renderSheet() : ""}${state.cmpOpen ? renderCompare() : ""}`;
+  document.body.classList.toggle("noscroll", state.sheet || state.cmpOpen);
   if (state.data && state.view === "map") attachMap();
   if (window.Charts) Charts.bindScrub(app, CHART_FMT);
   observeReveals();
@@ -1214,6 +1290,16 @@ app.addEventListener("click", (e) => {
   let anim = true;
   switch (el.dataset.act) {
     case "nav": setView(v); return;
+    case "cmp": {
+      const i = state.cmp.indexOf(v);
+      if (i >= 0) state.cmp.splice(i, 1);
+      else if (state.cmp.length >= 3) { toast(t("cmpMax")); return; }
+      else state.cmp.push(v);
+      buzz(8); anim = false; break;
+    }
+    case "cmpopen": state.cmpOpen = true; buzz(6); render(false); return;
+    case "cmpclose": state.cmpOpen = false; render(false); return;
+    case "cmpclear": state.cmp = []; state.cmpOpen = false; buzz(6); render(false); return;
     case "sheet": state.sheet = true; sheetFresh = true; buzz(6); render(false); return;
     case "closesheet": state.sheet = false; render(false); return;
     case "setlang": state.lang = v; store.set("lang", v); render(false); return;
@@ -1227,6 +1313,14 @@ app.addEventListener("click", (e) => {
     case "gocity": state.city = v; store.set("city", v); state.area = null; state.chain = null; state.view = "prices"; mapFitKey = ""; rolled.clear(); buzz(10); render(true); window.scrollTo(0, 0); return;
     case "trange": state.trendRange = v; anim = true; break;
     case "mheat": state.heat = !state.heat; buzz(8); anim = false; break;
+    case "mview": state.mapView = v; store.set("mapview", v); anim = false; mapFitKey = ""; break;
+    case "onmap": {
+      const st = stationById(v); if (!st) return;
+      state.selected = v; state.open = null; if (state.mapView === "list") { state.mapView = "split"; store.set("mapview", "split"); mapFitKey = "x"; }
+      buzz(10); render(false); window.scrollTo({ top: 0, behavior: "smooth" });
+      if (mapObj) mapObj.flyTo(st.lat, st.lng, Math.max(mapObj.z, 13.5), 0.3, 600);
+      return;
+    }
     case "mapmode": state.mapMode = v; store.set("mapmode", v); anim = false; break;
     case "mode": state.mode = v; store.set("mode", v); break;
     case "area": state.area = v || null; state.showAll = false; mapFitKey = ""; break;
@@ -1302,7 +1396,7 @@ function spotlight(e) {
 app.addEventListener("pointermove", spotlight, { passive: true });
 app.addEventListener("pointerdown", spotlight, { passive: true });
 app.addEventListener("submit", (e) => { e.preventDefault(); addFill(); });
-window.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.sheet) { state.sheet = false; render(false); } });
+window.addEventListener("keydown", (e) => { if (e.key === "Escape" && (state.sheet || state.cmpOpen)) { state.sheet = false; state.cmpOpen = false; render(false); } });
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; if (state.data) render(false); });
 window.addEventListener("appinstalled", () => { state.installed = true; installPrompt = null; render(false); });
 document.addEventListener("visibilitychange", () => {
@@ -1445,7 +1539,11 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
     </svg>`;
   }
   const refinery = buildRefinery();
-  scene.innerHTML = `<div class="haze"></div>` + refinery + `<div class="ground"></div>` +
+  const sparks = REDUCE_MOTION ? "" : `<div class="sparks">${Array.from({ length: 18 }, (_, i) => {
+    const r = (n) => ((Math.sin(i * 12.9898 + n * 78.233) * 43758.5453) % 1 + 1) % 1;
+    return `<i style="left:${(r(1) * 100).toFixed(1)}%;--s:${(1.5 + r(2) * 2.5).toFixed(1)}px;--t:${(26 + r(3) * 24).toFixed(0)}s;--dl:${(-r(4) * 40).toFixed(1)}s;--dx:${((r(5) - .5) * 60).toFixed(0)}px;--o:${(.35 + r(6) * .4).toFixed(2)}"></i>`;
+  }).join("")}</div>`;
+  scene.innerHTML = `<div class="haze"></div>` + refinery + `<div class="ground"></div>` + sparks +
     DROP('style="--w:230px;left:-96px;top:34vh;--fx:46;--fy:.5;--b:2.2px;--r:-14deg;--d:7s"', "near") +
     DROP('style="--w:200px;right:-60px;top:10vh;--fx:-40;--fy:.42;--b:1.8px;--r:12deg;--d:9s"', "near") +
     DROP('style="--w:104px;left:66%;top:36vh;--fx:20;--fy:.2;--b:0px;--r:6deg;--d:8s"', "mid") +
