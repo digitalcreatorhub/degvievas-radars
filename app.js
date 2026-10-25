@@ -1539,11 +1539,14 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
             ${layer("l-far", far)}${fog(176, 60, .75)}
       ${layer("l-mid", mid)}<g class="rl l-mid flareg"><g transform="translate(-180 0)"><circle class="flare-glow" cx="740.5" cy="66" r="120" fill="url(#flare)"/>
         <g class="flarestack"><rect x="739.6" y="86" width="1.8" height="146"/><rect x="738" y="86" width="5" height="2"/></g>
-        <g class="fl f1"><path d="M740.5 40C735 52 733 62 735.4 74C736.8 81 744.2 81 745.6 74C748 62 745 52 740.5 40Z" fill="#ff5a1c" filter="url(#fb)"/></g>
-        <g class="fl f2"><path d="M740.5 52C736.8 60 736 67 737.6 75C738.6 79 742.4 79 743.4 75C745 67 744.2 60 740.5 52Z" fill="#ffa02e"/></g>
-        <g class="fl f3"><path d="M740.5 64C738.8 69 738.6 74 739.6 78C740.2 80 740.8 80 741.4 78C742.4 74 742.2 69 740.5 64Z" fill="#fff0c4"/></g>
-        <g class="fl f4"><path d="M740.5 30C739 36 739.4 40 740.5 43C741.6 40 742 36 740.5 30Z" fill="#ff8a2a" filter="url(#fb)"/></g>
-        <circle class="em e1" cx="739" cy="44" r=".9"/><circle class="em e2" cx="742" cy="46" r=".7"/><circle class="em e3" cx="740.5" cy="42" r=".8"/></g></g>
+        <g class="smoke"><circle class="sm s1" cx="747" cy="24" r="7"/><circle class="sm s2" cx="750" cy="18" r="9"/><circle class="sm s3" cx="745" cy="26" r="6"/></g>
+        <g class="flm"><g class="fl body"><path d="M733.5 82C731.5 75 735 68 733.6 60C732.6 54 736.6 50 735.4 42C740 47 741 39 745.6 31C745.4 41 752 45 750 53C754.4 51 752.6 61 752.4 67C754.4 73 749.4 78 747.4 82Z" fill="#ff4d12" opacity=".92" filter="url(#fb)"/></g>
+        <g class="fl t1"><path d="M737 81C735 69 738 59 741.5 45C742.5 56 746 66 745 81Z" fill="#ff8a24"/></g>
+        <g class="fl t2"><path d="M742 81C743 71 748 63 757 56C753 66 752 74 749 81Z" fill="#ff7a1c"/></g>
+        <g class="fl t3"><path d="M735.5 81C734.5 75 733.5 71 731.5 68C735.5 68 737.5 73 738.5 81Z" fill="#ff9a30"/></g>
+        <g class="fl t4"><path d="M744 80C746.5 72 751 65 757.5 59C757 68 754 76 749 82Z" fill="#ffb030" opacity=".85"/></g>
+        <g class="fl core"><ellipse cx="741" cy="77.5" rx="4.2" ry="6" fill="#ffd77a"/><ellipse cx="741" cy="79" rx="2.8" ry="3.6" fill="#fff6dc"/></g></g>
+        <circle class="em e1" cx="745" cy="40" r=".9"/><circle class="em e2" cx="749" cy="46" r=".7"/><circle class="em e3" cx="742" cy="38" r=".8"/></g></g>
       ${fog(206, 46, .65)}
       ${layer("l-near", near, "", "M-400 252H1400V700H-400Z")}${fog(236, 30, .95)}
     </svg>`;
