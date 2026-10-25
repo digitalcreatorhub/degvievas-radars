@@ -893,3 +893,7 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 .refinery .e2 { --ex: -7px; } .refinery .e3 { --ex: 3px; }
 .refinery .flare-glow { animation: flareGlow 2.6s ease-in-out infinite alternate; }
 @keyframes flareGlow { 0% { opacity: .65; } 45% { opacity: .95; } 100% { opacity: .75; } }
+
+/* live canvas flame replaces the SVG fallback tongues */
+.flame-cv { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; }
+.live-flame .flm, .live-flame .smoke, .live-flame .em { display: none; }

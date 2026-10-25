@@ -1538,7 +1538,7 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
       <filter id="fb" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation=".9"/></filter><radialGradient id="flare"><stop offset="0" stop-color="#ffb35c" stop-opacity=".7"/><stop offset=".15" stop-color="#ff8a3a" stop-opacity=".35"/><stop offset="1" stop-color="#ff6a2a" stop-opacity="0"/></radialGradient></defs>
             ${layer("l-far", far)}${fog(176, 60, .75)}
       ${layer("l-mid", mid)}<g class="rl l-mid flareg"><g transform="translate(-180 0)"><circle class="flare-glow" cx="740.5" cy="66" r="120" fill="url(#flare)"/>
-        <g class="flarestack"><rect x="739.6" y="86" width="1.8" height="146"/><rect x="738" y="86" width="5" height="2"/></g>
+        <circle class="fa" cx="740.5" cy="84" r=".5" fill="none"/><g class="flarestack"><rect x="739.6" y="86" width="1.8" height="146"/><rect x="738" y="86" width="5" height="2"/></g>
         <g class="smoke"><circle class="sm s1" cx="747" cy="24" r="7"/><circle class="sm s2" cx="750" cy="18" r="9"/><circle class="sm s3" cx="745" cy="26" r="6"/></g>
         <g class="flm"><g class="fl body"><path d="M733.5 82C731.5 75 735 68 733.6 60C732.6 54 736.6 50 735.4 42C740 47 741 39 745.6 31C745.4 41 752 45 750 53C754.4 51 752.6 61 752.4 67C754.4 73 749.4 78 747.4 82Z" fill="#ff4d12" opacity=".92" filter="url(#fb)"/></g>
         <g class="fl t1"><path d="M737 81C735 69 738 59 741.5 45C742.5 56 746 66 745 81Z" fill="#ff8a24"/></g>
@@ -1565,6 +1565,95 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
     DROP('style="--w:38px;right:12%;top:60vh;--fx:5;--fy:.05;--b:.8px;--r:-5deg;--d:12s"', "far") +
     DROP('style="--w:30px;left:30%;top:46vh;--fx:4;--fy:.04;--b:1px;--r:9deg;--d:13s"', "far");
   document.body.appendChild(scene);
+
+  // Real-looking flare: a small canvas particle fire (additive glowing sprites that rise, cool from white to red,
+  // lean in the wind and lick). The SVG flame stays as the fallback for reduced motion.
+  (() => {
+    if (REDUCE_MOTION) return;
+    const anchor = scene.querySelector(".fa"), svgEl = scene.querySelector(".refinery");
+    if (!anchor || !svgEl) return;
+    const CW = 190, CH = 300, BX = 70, BY = 240, dpr = Math.min(devicePixelRatio || 1, 2);
+    const cv = document.createElement("canvas");
+    cv.className = "flame-cv"; cv.width = CW * dpr; cv.height = CH * dpr;
+    cv.style.width = CW + "px"; cv.style.height = CH + "px";
+    const ctx = cv.getContext("2d");
+    if (!ctx) return;
+    scene.insertBefore(cv, scene.querySelector(".sparks"));
+    scene.classList.add("live-flame");
+    const stops = [[0, [255, 240, 190]], [.1, [255, 214, 120]], [.34, [255, 150, 40]], [.64, [232, 70, 14]], [1, [100, 22, 8]]];
+    const colour = (t) => {
+      for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) {
+        const [t0, c0] = stops[i - 1], [t1, c1] = stops[i], k = (t - t0) / (t1 - t0);
+        return c0.map((v, j) => Math.round(v + (c1[j] - v) * k));
+      }
+      return stops[stops.length - 1][1];
+    };
+    const N = 32;
+    const sprites = Array.from({ length: N }, (_, i) => {
+      const c = document.createElement("canvas"); c.width = c.height = 64;
+      const g = c.getContext("2d"), [r, gg, b] = colour(i / (N - 1));
+      const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, `rgba(${r},${gg},${b},1)`); gr.addColorStop(.35, `rgba(${r},${gg},${b},.55)`); gr.addColorStop(1, `rgba(${r},${gg},${b},0)`);
+      g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+      return c;
+    });
+    const parts = [], smoke = [];
+    let last = 0, boost = 0, nextBurst = 0.6, smokeAcc = 0, spawnAcc = 0, show = true;
+    const rnd = Math.random;
+    function frame(now) {
+      requestAnimationFrame(frame);
+      const dt = Math.min(.05, (now - last) / 1000); last = now;
+      if (dt <= 0) return;
+      const r = anchor.getBoundingClientRect();
+      show = r.left > -120 && r.left < innerWidth + 120 && r.top > -200 && r.top < innerHeight + 60;
+      cv.style.display = show ? "" : "none";
+      if (!show) return;
+      const k = Math.max(.6, svgEl.getBoundingClientRect().width / 1000);
+      cv.style.transform = `translate(${(r.left + r.width / 2 - BX).toFixed(1)}px,${(r.top + r.height / 2 - BY + 2).toFixed(1)}px)`;
+      const t = now / 1000, light = document.documentElement.dataset.theme === "light";
+      nextBurst -= dt; if (nextBurst <= 0) { boost = 1; nextBurst = .5 + rnd() * 1.4; }
+      boost = Math.max(0, boost - dt * 2.2);
+      const rate = 170 * (1 + boost * .9);
+      spawnAcc += rate * dt;
+      while (spawnAcc >= 1) {
+        spawnAcc--;
+        parts.push({ x: BX + (rnd() - .5) * 14 * k, y: BY - rnd() * 4 * k, vx: (rnd() - .5) * 26 * k, vy: -(48 + rnd() * 62 + boost * 40) * k, life: .6 + rnd() * .8, age: 0, size: (6 + rnd() * 6) * k, ph: rnd() * 6.28 });
+      }
+      smokeAcc += dt;
+      if (smokeAcc > .22) { smokeAcc = 0; smoke.push({ x: BX + 10 * k, y: BY - 82 * k, vx: (14 + rnd() * 10) * k, vy: -(14 + rnd() * 10) * k, life: 2.6 + rnd(), age: 0, size: (7 + rnd() * 4) * k }); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, CW, CH);
+      ctx.globalCompositeOperation = "source-over";
+      for (let i = smoke.length - 1; i >= 0; i--) {
+        const p = smoke[i]; p.age += dt;
+        if (p.age >= p.life) { smoke.splice(i, 1); continue; }
+        const u = p.age / p.life;
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        ctx.globalAlpha = Math.sin(u * Math.PI) * (light ? .16 : .1);
+        const s = p.size * (1 + u * 2.4);
+        ctx.fillStyle = light ? "#3a2412" : "#2a1a0e";
+        ctx.beginPath(); ctx.arc(p.x, p.y, s, 0, 6.283); ctx.fill();
+      }
+      ctx.globalCompositeOperation = light ? "source-over" : "lighter";
+      // hot base glow
+      ctx.globalAlpha = (.3 + .12 * Math.sin(t * 9) + .1 * Math.sin(t * 23 + 1)) * (1 + boost * .3);
+      const bs = 20 * k * (1 + boost * .25);
+      ctx.drawImage(sprites[2], BX - bs, BY - bs * .9, bs * 2, bs * 2);
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i]; p.age += dt;
+        if (p.age >= p.life) { parts.splice(i, 1); continue; }
+        const u = p.age / p.life;
+        p.vy *= 1 - .35 * dt;
+        p.x += (p.vx + (46 + Math.sin(t * 3.1 + p.ph) * 22) * u * k + Math.sin(t * 9 + p.ph * 3) * 34 * u * k) * dt;
+        p.y += p.vy * dt;
+        const s = p.size * (1.15 - u * .9) * 2.4;
+        ctx.globalAlpha = Math.pow(1 - u, 1.2) * (light ? .4 : .26);
+        ctx.drawImage(sprites[Math.min(N - 1, Math.floor(u * (N - 1)))], p.x - s / 2, p.y - s / 2, s, s);
+      }
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    }
+    requestAnimationFrame(frame);
+  })();
   const root = scene.style;  // set on the scene only, so scrolling does not restyle the whole page
   let raf = 0, sy = 0, px = 0, py = 0;
   const apply = () => { raf = 0; root.setProperty("--sy", sy); root.setProperty("--px", px.toFixed(3)); root.setProperty("--py", py.toFixed(3)); };
