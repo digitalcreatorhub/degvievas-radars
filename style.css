@@ -898,3 +898,18 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 /* live canvas flame replaces the SVG fallback tongues */
 .flame-cv { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; }
 .live-flame .flm, .live-flame .smoke, .live-flame .em { display: none; }
+
+/* cards sit in front: solid enough that the drops behind never show through the numbers */
+.tile, .fav, .ins, .sum, .oil > div, .jstats > div, .save-card, .cta, .jform { background-color: rgba(14, 10, 6, .92); box-shadow: var(--rim), 0 20px 36px -18px rgba(0, 0, 0, .95), 0 2px 0 rgba(255, 190, 110, .05); }
+:root[data-theme="light"] .tile, :root[data-theme="light"] .fav, :root[data-theme="light"] .ins, :root[data-theme="light"] .sum, :root[data-theme="light"] .oil > div, :root[data-theme="light"] .jstats > div, :root[data-theme="light"] .save-card, :root[data-theme="light"] .cta, :root[data-theme="light"] .jform { background-color: rgba(255, 250, 241, .93); }
+/* drops sit far behind */
+.drop.far { opacity: .5; }
+.drop.near { opacity: .6; }
+.drop.mid { opacity: .55; }
+/* every row keeps the long colour strip on the left; estimates get a softer one */
+.row.est { box-shadow: inset 3px 0 0 hsl(var(--h) 70% 52% / .5); background: linear-gradient(90deg, hsl(var(--h) 70% 50% / .07), transparent 32%); }
+
+/* crisp green: a bright strip with a short fade, not a wide haze */
+.row.heat { background: linear-gradient(90deg, hsl(var(--h) 72% 42% / .3), hsl(var(--h) 72% 42% / .1) 16%, transparent 30%); }
+.row.est { background: linear-gradient(90deg, hsl(var(--h) 66% 40% / .2), hsl(var(--h) 66% 40% / .06) 14%, transparent 26%); }
+.row.near::after { background: repeating-linear-gradient(90deg, hsl(var(--h) 85% 55% / 0) 0%, hsl(var(--h) 88% 58% / .3) 7%, hsl(var(--h) 90% 62% / .12) 13%, hsl(var(--h) 85% 55% / 0) 21%, hsl(var(--h) 85% 55% / 0) 50%); }

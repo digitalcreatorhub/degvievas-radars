@@ -1566,13 +1566,13 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
     return `<i style="left:${(r(1) * 100).toFixed(1)}%;--s:${(1.5 + r(2) * 2.5).toFixed(1)}px;--t:${(26 + r(3) * 24).toFixed(0)}s;--dl:${(-r(4) * 40).toFixed(1)}s;--dx:${((r(5) - .5) * 60).toFixed(0)}px;--o:${(.35 + r(6) * .4).toFixed(2)}"></i>`;
   }).join("")}</div>`;
   scene.innerHTML = `<div class="haze"></div>` + refinery + `<div class="ground"></div>` + sparks +
-    DROP('style="--w:230px;left:-96px;top:34vh;--fx:46;--fy:.5;--b:2.2px;--r:-14deg;--d:7s"', "near") +
-    DROP('style="--w:200px;right:-60px;top:10vh;--fx:-40;--fy:.42;--b:1.8px;--r:12deg;--d:9s"', "near") +
-    DROP('style="--w:104px;left:66%;top:36vh;--fx:20;--fy:.2;--b:0px;--r:6deg;--d:8s"', "mid") +
-    DROP('style="--w:80px;left:6%;top:30vh;--fx:16;--fy:.16;--b:0px;--r:-8deg;--d:10s"', "mid") +
-    DROP('style="--w:48px;left:42%;top:19vh;--fx:7;--fy:.07;--b:.6px;--r:4deg;--d:11s"', "far") +
-    DROP('style="--w:38px;right:12%;top:60vh;--fx:5;--fy:.05;--b:.8px;--r:-5deg;--d:12s"', "far") +
-    DROP('style="--w:30px;left:30%;top:46vh;--fx:4;--fy:.04;--b:1px;--r:9deg;--d:13s"', "far");
+    DROP('style="--w:150px;left:-70px;top:38vh;--fx:30;--fy:.32;--b:2.6px;--r:-14deg;--d:7s"', "near") +
+    DROP('style="--w:130px;right:-52px;top:12vh;--fx:-26;--fy:.28;--b:2.4px;--r:12deg;--d:9s"', "near") +
+    DROP('style="--w:64px;left:70%;top:42vh;--fx:12;--fy:.12;--b:1.8px;--r:6deg;--d:8s"', "mid") +
+    DROP('style="--w:52px;left:8%;top:30vh;--fx:10;--fy:.1;--b:1.6px;--r:-8deg;--d:10s"', "mid") +
+    DROP('style="--w:34px;left:44%;top:20vh;--fx:5;--fy:.05;--b:1.2px;--r:4deg;--d:11s"', "far") +
+    DROP('style="--w:28px;right:12%;top:58vh;--fx:4;--fy:.04;--b:1.4px;--r:-5deg;--d:12s"', "far") +
+    DROP('style="--w:22px;left:30%;top:46vh;--fx:3;--fy:.03;--b:1.4px;--r:9deg;--d:13s"', "far");
   document.body.appendChild(scene);
 
   // Real-looking flare: a small canvas particle fire (additive glowing sprites that rise, cool from white to red,
