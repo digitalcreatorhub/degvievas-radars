@@ -1335,59 +1335,104 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
   };
   // Deterministic pseudo-random so the skyline is the same on every load
   const rng = (seed) => () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  function skyline(seed, G, sc, density, W = 1000) {
+  function skyline(seed, G, sc, density, W = 1000, far = false) {
     const r = rng(seed), R = (a, b) => a + (b - a) * r();
     let fill = "", line = "", lights = "";
     const f = (v) => v.toFixed(1);
+    const rect = (x, y, w, h) => `M${f(x)} ${f(y)}h${f(w)}v${f(h)}h${f(-w)}z`;
+    const lattice = (x, yTop, yBot, w, step) => {
+      let d = `M${f(x)} ${f(yBot)}V${f(yTop)}M${f(x + w)} ${f(yBot)}V${f(yTop)}`, up = true;
+      for (let y = yBot; y > yTop + step; y -= step) { d += `M${f(up ? x : x + w)} ${f(y)}L${f(up ? x + w : x)} ${f(y - step)}`; up = !up; }
+      return d;
+    };
+    const drum = (x, y, w, h) => { fill += `M${f(x + h / 2)} ${f(y)}h${f(w - h)}a${f(h / 2)} ${f(h / 2)} 0 0 1 0 ${f(h)}h${f(-(w - h))}a${f(h / 2)} ${f(h / 2)} 0 0 1 0 ${f(-h)}z`; };
+    // A distillation column: stepped body, dome, vent, platforms with railings, caged ladder
     const column = (x, w, h) => {
-      const rr = Math.min(w / 2, 4);
-      fill += `M${f(x)} ${G}V${f(G - h + rr)}Q${f(x)} ${f(G - h)} ${f(x + rr)} ${f(G - h)}H${f(x + w - rr)}Q${f(x + w)} ${f(G - h)} ${f(x + w)} ${f(G - h + rr)}V${G}Z`;
-      for (let y = G - h * .85; y < G - 8; y += R(14, 26) * sc) fill += `M${f(x - 2 * sc)} ${f(y)}h${f(w + 4 * sc)}v${f(1.6 * sc)}h${f(-(w + 4 * sc))}z`;
-      if (h > 60 * sc) line += `M${f(x + w + 1)} ${f(G - h * .9)}V${G}`;
+      const w2 = w * R(.7, .88), x2 = x + (w - w2) / 2, split = h * R(.42, .6);
+      fill += rect(x, G - split, w, split) + rect(x2, G - h + 3 * sc, w2, h - split - 3 * sc);
+      fill += `M${f(x)} ${f(G - split)}L${f(x2)} ${f(G - split - 3 * sc)}H${f(x2 + w2)}L${f(x + w)} ${f(G - split)}Z`;
+      fill += `M${f(x2)} ${f(G - h + 3 * sc)}Q${f(x2 + w2 / 2)} ${f(G - h - 3.5 * sc)} ${f(x2 + w2)} ${f(G - h + 3 * sc)}Z`;
+      fill += rect(x2 + w2 / 2 - .7 * sc, G - h - 10 * sc, 1.4 * sc, 8 * sc);
+      if (!far) {
+        for (let y = G - h * .9; y < G - 8 * sc; y += R(12, 21) * sc) {
+          const lower = y > G - split, ww = lower ? w : w2, xx = lower ? x : x2;
+          fill += rect(xx - 2.6 * sc, y, ww + 5.2 * sc, 1.3 * sc);
+          line += `M${f(xx - 2.6 * sc)} ${f(y)}v${f(-2.6 * sc)}h${f(ww + 5.2 * sc)}v${f(2.6 * sc)}`;
+        }
+        if (r() < .85) line += lattice(r() < .5 ? x - 5 * sc : x + w + .5 * sc, G - h * .86, G - 2 * sc, 4.5 * sc, 4.6 * sc);
+      }
+      return { cx: x + w / 2, top: G - h, w };
+    };
+    const frame = (x, w, h) => { // steel structure with drums on top
+      const bay = R(9, 14) * sc; let d = "";
+      for (let px = x; px <= x + w + .1; px += bay) d += `M${f(px)} ${G}V${f(G - h)}`;
+      const lv = R(13, 19) * sc; let k = 0;
+      for (let y = G - lv; y > G - h; y -= lv, k++) {
+        d += `M${f(x)} ${f(y)}H${f(x + w)}`;
+        for (let px = x, j = 0; px + bay <= x + w + .1; px += bay, j++) d += (j + k) % 2 ? `M${f(px)} ${f(y + lv)}L${f(px + bay)} ${f(y)}` : `M${f(px + bay)} ${f(y + lv)}L${f(px)} ${f(y)}`;
+      }
+      d += `M${f(x)} ${f(G - h)}H${f(x + w)}`; line += d;
+      fill += rect(x, G - h - 1.6 * sc, w, 1.6 * sc);
+      const nd = 1 + Math.floor(r() * 2); let dx = x + 2 * sc;
+      for (let i = 0; i < nd && dx < x + w - 14 * sc; i++) { const dw = R(16, 28) * sc, dh = R(6, 9) * sc; drum(dx, G - h - 1.6 * sc - dh, dw, dh); dx += dw + 3 * sc; }
     };
     let x = -20;
     while (x < W + 20) {
-      const pick = r();
-      if (pick < .26) { // column group joined by a bridge
-        const n = 2 + Math.floor(r() * 3); let cx = x, tops = [];
-        for (let i = 0; i < n; i++) { const w = R(9, 20) * sc, h = R(60, 150) * sc; column(cx, w, h); tops.push([cx + w / 2, G - h * R(.5, .8)]); cx += w + R(3, 8) * sc; }
-        for (let i = 1; i < tops.length; i++) line += `M${f(tops[i - 1][0])} ${f(tops[i - 1][1])}L${f(tops[i][0])} ${f(tops[i][1] - R(0, 6))}`;
-        x = cx + R(8, 30) * sc;
-      } else if (pick < .44) { // storage tanks
+      const pick = far ? (r() < .45 ? .1 : r() < .6 ? .7 : .9) : r();
+      if (pick < .4) { // tower group with pipe runs
+        const n = 2 + Math.floor(r() * 3), cols = []; let cx = x;
+        for (let i = 0; i < n; i++) { const w = R(11, 25) * sc, h = R(78, 172) * sc * (far ? .8 : 1); cols.push(column(cx, w, h)); cx += w + R(5, 11) * sc; }
+        if (!far) for (let i = 1; i < cols.length; i++) {
+          const a_ = cols[i - 1], b_ = cols[i], y1 = Math.max(a_.top, b_.top) + R(14, 40) * sc, px = (a_.cx + a_.w / 2 + b_.cx - b_.w / 2) / 2;
+          fill += rect(px - 1.1 * sc, y1, 2.2 * sc, G - y1);
+          line += `M${f(a_.cx + a_.w / 2)} ${f(y1 + 3 * sc)}H${f(px)}M${f(px)} ${f(y1 + 3 * sc)}H${f(b_.cx - b_.w / 2)}`;
+          if (r() < .6) line += `M${f(a_.cx)} ${f(a_.top + 5 * sc)}V${f(a_.top - 4 * sc)}H${f(b_.cx)}V${f(b_.top - 8 * sc)}`;
+        }
+        x = cx + R(0, 8) * sc;
+      } else if (pick < .62 && !far) { // steel structure
+        const w = R(34, 72) * sc, h = R(48, 98) * sc; frame(x, w, h); x += w + R(0, 8) * sc;
+      } else if (pick < .72) { // tanks
         const n = 1 + Math.floor(r() * 3); let cx = x;
-        for (let i = 0; i < n; i++) { const w = R(34, 72) * sc, h = R(18, 36) * sc; fill += `M${f(cx)} ${G}V${f(G - h)}Q${f(cx + w / 2)} ${f(G - h - 9 * sc)} ${f(cx + w)} ${f(G - h)}V${G}Z`; line += `M${f(cx + w * .15)} ${f(G - h * .9)}L${f(cx + w * .85)} ${f(G - 2)}`; cx += w + R(5, 14) * sc; }
-        x = cx + R(6, 24) * sc;
-      } else if (pick < .54) { // gas spheres
-        const rad = R(11, 19) * sc; const cy = G - rad - 9 * sc;
+        for (let i = 0; i < n; i++) { const w = R(34, 70) * sc, h = R(18, 34) * sc; fill += `M${f(cx)} ${G}V${f(G - h)}Q${f(cx + w / 2)} ${f(G - h - 8 * sc)} ${f(cx + w)} ${f(G - h)}V${G}Z`; if (!far) line += `M${f(cx + w)} ${f(G - h)}l${f(3 * sc)} 0v${f(h)}M${f(cx + w * .1)} ${f(G - h * .9)}L${f(cx + w * .9)} ${f(G - 2)}`; cx += w + R(3, 9) * sc; }
+        x = cx + R(0, 6) * sc;
+      } else if (pick < .8) { // exchangers
+        const n = 2 + Math.floor(r() * 2); let cy = G;
+        const w = R(26, 44) * sc, h = R(6, 9) * sc;
+        for (let i = 0; i < n; i++) { cy -= h + 4 * sc; drum(x, cy, w, h); fill += rect(x + w * .2, cy + h, 1.8 * sc, 4 * sc) + rect(x + w * .75, cy + h, 1.8 * sc, 4 * sc); }
+        fill += rect(x + w * .2, G - 2, 1.8 * sc, 2) ; x += w + R(2, 10) * sc;
+      } else if (pick < .87) { // spheres
+        const rad = R(11, 19) * sc, cy = G - rad - 9 * sc;
         fill += `M${f(x)} ${f(cy)}a${f(rad)} ${f(rad)} 0 1 0 ${f(rad * 2)} 0a${f(rad)} ${f(rad)} 0 1 0 ${f(-rad * 2)} 0Z`;
-        line += `M${f(x + rad * .5)} ${f(cy + rad * .8)}L${f(x + rad * .3)} ${G}M${f(x + rad * 1.5)} ${f(cy + rad * .8)}L${f(x + rad * 1.7)} ${G}`;
-        x += rad * 2 + R(8, 26) * sc;
-      } else if (pick < .64) { // tall stack
-        const w = R(5, 9) * sc, h = R(150, 205) * sc;
+        line += `M${f(x + rad * .5)} ${f(cy + rad * .8)}L${f(x + rad * .3)} ${G}M${f(x + rad * 1.5)} ${f(cy + rad * .8)}L${f(x + rad * 1.7)} ${G}M${f(x + rad)} ${f(cy + rad)}V${G}`;
+        x += rad * 2 + R(2, 12) * sc;
+      } else if (pick < .94) { // tall stack with bands
+        const w = R(6, 10) * sc, h = R(150, 215) * sc;
         fill += `M${f(x)} ${G}L${f(x + w * .22)} ${f(G - h)}H${f(x + w * .78)}L${f(x + w)} ${G}Z`;
+        for (let y = G - h + 6 * sc; y < G - 10; y += R(24, 38) * sc) fill += rect(x + w * .1, y, w * .8, 2.2 * sc);
+        if (!far) line += lattice(x + w + .8 * sc, G - h * .8, G - 2 * sc, 3.6 * sc, 4.2 * sc);
         if (density > .5) lights += `<circle class="warn" cx="${f(x + w / 2)}" cy="${f(G - h - 2)}" r="${f(.9 * sc + .3)}"/>`;
-        x += w + R(10, 34) * sc;
-      } else if (pick < .72) { // cooling towers
-        const w = R(34, 52) * sc, h = R(48, 72) * sc;
-        fill += `M${f(x)} ${G}C${f(x + w * .25)} ${f(G - h * .45)} ${f(x + w * .22)} ${f(G - h * .72)} ${f(x + w * .1)} ${f(G - h)}H${f(x + w * .9)}C${f(x + w * .78)} ${f(G - h * .72)} ${f(x + w * .75)} ${f(G - h * .45)} ${f(x + w)} ${G}Z`;
-        x += w + R(6, 22) * sc;
-      } else if (pick < .86) { // pipe rack with bracing
-        const w = R(90, 240) * sc, y = G - R(22, 42) * sc;
-        fill += `M${f(x)} ${f(y)}h${f(w)}v${f(2.4 * sc)}h${f(-w)}zM${f(x)} ${f(y + 7 * sc)}h${f(w)}v${f(1.8 * sc)}h${f(-w)}z`;
-        for (let px = x; px <= x + w; px += R(18, 30) * sc) { fill += `M${f(px)} ${f(y)}h${f(2 * sc)}V${G}h${f(-2 * sc)}z`; line += `M${f(px)} ${f(y + 9 * sc)}L${f(px + 20 * sc)} ${G}`; }
-        x += w + R(4, 20) * sc;
-      } else { // furnace block with short stack
-        const w = R(26, 56) * sc, h = R(22, 44) * sc;
-        fill += `M${f(x)} ${G}V${f(G - h)}H${f(x + w)}V${G}ZM${f(x + w * .2)} ${f(G - h)}V${f(G - h - 18 * sc)}h${f(5 * sc)}V${f(G - h)}z`;
-        x += w + R(6, 22) * sc;
+        x += w + R(8, 22) * sc;
+      } else { // cooling towers
+        const w = R(40, 64) * sc, h = R(56, 88) * sc;
+        fill += `M${f(x)} ${G}C${f(x + w * .25)} ${f(G - h * .45)} ${f(x + w * .2)} ${f(G - h * .72)} ${f(x + w * .1)} ${f(G - h)}H${f(x + w * .9)}C${f(x + w * .8)} ${f(G - h * .72)} ${f(x + w * .75)} ${f(G - h * .45)} ${f(x + w)} ${G}Z`;
+        if (far) for (let i = 0; i < 3; i++) { const pr = (9 + i * 5) * sc; fill += `M${f(x + w * .5 - pr)} ${f(G - h - 6 * sc - i * 12 * sc)}a${f(pr)} ${f(pr * .62)} 0 1 0 ${f(pr * 2)} 0a${f(pr)} ${f(pr * .62)} 0 1 0 ${f(-pr * 2)} 0Z`; }
+        x += w + R(2, 14) * sc;
       }
-      x += (1 - density) * R(0, 40);
     }
-    if (density > .6) for (let i = 0; i < 26; i++) lights += `<circle class="lt" cx="${f(R(0, W))}" cy="${f(G - R(5, 70) * sc)}" r=".7"/>`;
+    // pipe rack along the base and a low plinth
+    if (!far) {
+      for (let px = -10; px < W; px += 230) {
+        const w = R(120, 210) * sc, y = G - 14 * sc;
+        fill += rect(px, y, w, 2 * sc) + rect(px, y + 5 * sc, w, 1.6 * sc);
+        for (let k = px; k < px + w; k += 20 * sc) { fill += rect(k, y, 1.8 * sc, G - y); line += `M${f(k)} ${f(y + 6 * sc)}L${f(k + 20 * sc)} ${G}`; }
+      }
+    }
+    fill += rect(-60, G - 3 * sc, W + 120, 3 * sc);
+    if (density > .6) for (let i = 0; i < 30; i++) lights += `<circle class="lt" cx="${f(R(0, W))}" cy="${f(G - R(4, 90) * sc)}" r=".7"/>`;
     return { fill, line, lights };
   }
   function buildRefinery() {
-    const far = skyline(11, 214, .55, .5), mid = skyline(27, 232, .8, .65), near = skyline(5, 252, 1.05, .8);
+    const far = skyline(11, 214, .6, .5, 1000, true), mid = skyline(27, 233, .78, .65), near = skyline(5, 253, 1.05, .85);
     const layer = (cls, o, extra = "", ground = "") => `<g class="rl ${cls}"><path d="${ground}${o.fill}" class="rf"/><path d="${o.line}" class="rs" fill="none"/>${o.lights}${extra}</g>`;
     const fog = (y, h, o) => `<rect x="-300" y="${y}" width="1600" height="${h}" fill="url(#fog)" opacity="${o}"/>`;
     return `<svg class="refinery" viewBox="0 0 1000 260" preserveAspectRatio="xMidYMax meet"><defs>
@@ -1401,13 +1446,13 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
   const refinery = buildRefinery();
   scene.innerHTML = `<div class="haze"></div>` + refinery + `<div class="ground"></div>` +
-    DROP('style="--w:260px;left:-80px;top:58vh;--fx:46;--fy:.5;--b:2.2px;--r:-14deg;--d:7s"', "near") +
+    DROP('style="--w:230px;left:-96px;top:34vh;--fx:46;--fy:.5;--b:2.2px;--r:-14deg;--d:7s"', "near") +
     DROP('style="--w:200px;right:-60px;top:10vh;--fx:-40;--fy:.42;--b:1.8px;--r:12deg;--d:9s"', "near") +
-    DROP('style="--w:110px;left:68%;top:40vh;--fx:20;--fy:.2;--b:0px;--r:6deg;--d:8s"', "mid") +
+    DROP('style="--w:104px;left:66%;top:36vh;--fx:20;--fy:.2;--b:0px;--r:6deg;--d:8s"', "mid") +
     DROP('style="--w:80px;left:6%;top:30vh;--fx:16;--fy:.16;--b:0px;--r:-8deg;--d:10s"', "mid") +
     DROP('style="--w:48px;left:42%;top:19vh;--fx:7;--fy:.07;--b:.6px;--r:4deg;--d:11s"', "far") +
-    DROP('style="--w:38px;right:18%;top:70vh;--fx:5;--fy:.05;--b:.8px;--r:-5deg;--d:12s"', "far") +
-    DROP('style="--w:30px;left:28%;top:52vh;--fx:4;--fy:.04;--b:1px;--r:9deg;--d:13s"', "far");
+    DROP('style="--w:38px;right:12%;top:60vh;--fx:5;--fy:.05;--b:.8px;--r:-5deg;--d:12s"', "far") +
+    DROP('style="--w:30px;left:30%;top:46vh;--fx:4;--fy:.04;--b:1px;--r:9deg;--d:13s"', "far");
   document.body.appendChild(scene);
   const root = scene.style;  // set on the scene only, so scrolling does not restyle the whole page
   let raf = 0, sy = 0, px = 0, py = 0;

@@ -731,12 +731,12 @@ button:active:not(:disabled), .btn:active { transition-duration: .08s; }
 :root[data-theme="light"] .haze { background: radial-gradient(70% 60% at 74% 100%, rgba(255, 160, 80, .36), transparent 70%), linear-gradient(0deg, rgba(255, 122, 26, .3), transparent); }
 .ground { position: absolute; left: 0; right: 0; bottom: 0; height: 66px; background: linear-gradient(180deg, rgba(10, 7, 4, .93), #070503 40%); }
 :root[data-theme="light"] .ground { background: linear-gradient(180deg, rgba(205, 160, 105, .5), rgb(216, 186, 146) 45%); }
-.refinery { position: absolute; left: 50%; bottom: 58px; width: min(max(190%, 900px), 1700px); height: auto; overflow: visible; translate: -50% 0; }
+.refinery { position: absolute; left: 50%; bottom: 58px; width: min(max(240%, 1000px), 1500px); height: auto; overflow: visible; translate: -50% 0; }
 .refinery .l-far { transform: translate(calc(var(--px, 0) * -3px), calc(var(--sy, 0) * .01px)); }
 .refinery .l-mid { transform: translate(calc(var(--px, 0) * -7px), calc(var(--sy, 0) * .022px)); }
 .refinery .l-near { transform: translate(calc(var(--px, 0) * -13px), calc(var(--sy, 0) * .04px)); }
 .refinery .rf { fill: var(--c); }
-.refinery .rs { stroke: var(--c); stroke-width: .9; }
+.refinery .rs { stroke: var(--c); stroke-width: .8; stroke-linejoin: round; }
 .refinery .flarestack rect { fill: var(--c); }
 .refinery .l-far { --c: rgba(190, 110, 40, .2); }
 .refinery .l-mid { --c: rgba(125, 62, 22, .46); }
