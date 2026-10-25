@@ -1,5 +1,5 @@
 /* Degvielas Radars service worker: app shell offline, data network-first. */
-const VERSION = "v11";
+const VERSION = "v12";
 // The preview (/next/) and the main site share one origin, so each keeps its own cache names.
 const PREFIX = self.location.pathname.includes("/next/") ? "drn" : "dr";
 const SHELL = `${PREFIX}-shell-${VERSION}`;
@@ -7,7 +7,7 @@ const DATA = `${PREFIX}-data-${VERSION}`;
 const FILES = ["./", "index.html", "style.css", "app.js", "map.js", "charts.js", "stats.js", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", (e) => {
   e.waitUntil(
