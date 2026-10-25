@@ -5,6 +5,7 @@
 const I18N = {
   ru: {
     heat: "Тепловая карта цен",
+    sortPrice: "Цена", sortNear: "Рядом", sortFresh: "Свежие", retry: "Повторить",
     title: "Degvielas Radars",
     refresh: "Обновить",
     theme: "Сменить тему",
@@ -79,6 +80,7 @@ const I18N = {
   },
   en: {
     heat: "Price heat map",
+    sortPrice: "Price", sortNear: "Nearest", sortFresh: "Freshest", retry: "Retry",
     title: "Degvielas Radars",
     refresh: "Refresh",
     theme: "Switch theme",
@@ -258,6 +260,7 @@ const state = {
   fpm: store.get("fpm", 4),
   trendRange: "30",
   heat: false,
+  sort: "price",
   baseline: store.get("snap", null),
 };
 let installPrompt = null;
@@ -711,10 +714,21 @@ function renderFavs() {
   return `<h2>♥ ${t("favs")}</h2><div class="favrow">${inner}</div>`;
 }
 
+function sortedRows(rows) {
+  if (state.sort === "near" && state.loc) return [...rows].sort((a, b) => (a.dist ?? 9e9) - (b.dist ?? 9e9) || a.price - b.price);
+  if (state.sort === "fresh") return [...rows].sort((a, b) => (a.cell.ago ?? 9e9) - (b.cell.ago ?? 9e9) || a.price - b.price);
+  return rows;
+}
+function renderSort() {
+  const opts = [["price", t("sortPrice")], ["near", t("sortNear")], ["fresh", t("sortFresh")]];
+  return `<div class="seg slim sort" role="group">${opts.map(([k, l]) => `<button data-act="sort" data-v="${k}" aria-pressed="${(state.sort === k && (k !== "near" || state.loc)) ? "true" : "false"}">${l}</button>`).join("")}</div>`;
+}
 function renderList(rows) {
   if (!rows.length) return "";
-  const exactPrices = rows.filter((r) => r.exact).map((r) => r.price);
-  const pool = exactPrices.length ? exactPrices : rows.map((r) => r.price);
+  const byPrice = rows;
+  rows = sortedRows(rows);
+  const exactPrices = byPrice.filter((r) => r.exact).map((r) => r.price);
+  const pool = exactPrices.length ? exactPrices : byPrice.map((r) => r.price);
   const lo = Math.min(...pool), hi = Math.max(...pool);
   const limit = state.showAll ? rows.length : 8;
   const items = rows.slice(0, limit).map((r, i) => {
@@ -723,7 +737,7 @@ function renderList(rows) {
       ? `<span class="note warn">${r.cell.k === "min" ? t("minShort") : kindLabel(r)}</span>`
       : r.cell.k === "user" ? `<span class="note">${kindLabel(r)}</span>` : "";
     const dist = r.dist != null ? `${r.dist.toFixed(1)} ${t("km")}, ` : "";
-    return `<li class="row ${r.exact ? "heat" : "est"}" style="--i:${Math.min(i, 14)};--h:${heatHue(r.price, lo, hi)}">
+    return `<li class="row ${r.exact ? "heat" : "est"}" data-id="${esc(r.st.id)}" style="--i:${Math.min(i, 14)};--h:${heatHue(r.price, lo, hi)}">
       <span class="rank">${i + 1}</span>
       <div class="who"><b><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</b>
         <span>${esc(r.st.address)}</span>${note}
@@ -736,6 +750,7 @@ function renderList(rows) {
   }).join("");
   return `
   <h2>${t("stationsH")}</h2><p class="sub">${rows.length} ${t("withPrice")}</p>
+  ${renderSort()}
   <ol class="list" style="padding:0">${items}</ol>
   ${rows.length > 8 ? `<button class="more" data-act="more">${state.showAll ? t("showLess") : `${t("showAll")} ${rows.length}`}</button>` : ""}`;
 }
@@ -821,7 +836,7 @@ function renderPrices() {
   const rows = rowsFor();
   return `${renderInstall()}
     <div class="left">${renderBoard()}${renderHero(rows)}${renderCalc(rows)}</div>
-    <div class="right">${renderFilters()}${renderFavs()}${renderList(rows)}${renderChains()}${renderTrend()}${renderOil()}</div>`;
+    <div class="right">${renderFilters()}${renderFavs()}${renderList(rows)}<div class="rv">${renderChains()}</div><div class="rv">${renderTrend()}</div><div class="rv">${renderOil()}</div></div>`;
 }
 
 /* ---------- map view ---------- */
@@ -967,7 +982,7 @@ function renderJournal() {
   return `<section class="jview">
     <h2 style="margin-top:20px">${t("jH")}</h2><p class="sub">${t("jSub")}</p>
     ${cards}${per100}
-    ${journalCharts(s)}
+    <div class="rv">${journalCharts(s)}</div>
     ${s.avgCons != null ? `<button class="chip" data-act="jusecons">${t("jUse")} (${s.avgCons.toFixed(1)})</button>` : ""}
     <form class="jform" data-act="jform" novalidate>
       <div class="field"><label for="jd">${t("jDate")}</label><input id="jd" type="date" data-act="jf" data-v="date" value="${esc(f.date)}"></div>
@@ -1036,7 +1051,7 @@ function render(anim = true) {
     if (present.length && !present.includes(state.fuel)) state.fuel = present[0];
   }
   let body;
-  if (!state.data) body = state.loading ? renderSkeleton() : `<div class="empty"><b>${t("noDataH")}</b>${t("noDataT")}</div>`;
+  if (!state.data) body = state.loading ? renderSkeleton() : `<div class="empty"><b>${t("noDataH")}</b>${t("noDataT")}<button class="btn retry" data-act="refresh">${t("retry")}</button></div>`;
   else if (!state.data.stations.length) body = `<div class="empty"><b>${t("noDataH")}</b>${t("noDataT")}</div>`;
   else if (state.view === "map") body = renderMapView();
   else if (state.view === "stats") body = renderStats();
@@ -1047,6 +1062,7 @@ function render(anim = true) {
   document.body.classList.toggle("noscroll", state.sheet);
   if (state.data && state.view === "map") attachMap();
   if (window.Charts) Charts.bindScrub(app, CHART_FMT);
+  observeReveals();
   settleRolls();
   const navEl = app.querySelector(".bnav");
   if (navEl) { const to = +navEl.dataset.idx; requestAnimationFrame(() => requestAnimationFrame(() => navEl.style.setProperty("--idx", to))); navShown = to; }
@@ -1130,15 +1146,24 @@ async function refreshNow() {
     toast(`${t("refreshed")} ${hhmm}`);
   }
 }
+const VIEW_ORDER = ["prices", "map", "stats", "journal"];
 function setView(v) {
   if (state.view === v) return;
-  state.view = v;
-  state.sheet = false;
-  state.selected = null;
-  rolled.clear();
+  const dir = VIEW_ORDER.indexOf(v) > VIEW_ORDER.indexOf(state.view) ? "fwd" : "back";
+  const apply = () => {
+    state.view = v;
+    state.sheet = false;
+    state.selected = null;
+    rolled.clear();
+    render(true);
+    window.scrollTo(0, 0);
+  };
   buzz(6);
-  render(true);
-  window.scrollTo(0, 0);
+  if (document.startViewTransition && !REDUCE_MOTION) {
+    document.documentElement.dataset.vt = dir;
+    const vt = document.startViewTransition(apply);
+    vt.finished.finally(() => { delete document.documentElement.dataset.vt; });
+  } else apply();
 }
 async function shareStation(id) {
   const st = stationById(id);
@@ -1195,6 +1220,9 @@ app.addEventListener("click", (e) => {
     case "settheme": state.theme = v; store.set("theme", v); applyTheme(); render(false); return;
     case "refresh": refreshNow(); return;
     case "fuel": state.fuel = v; store.set("fuel", v); state.showAll = false; state.open = null; buzz(8); break;
+    case "sort":
+      if (v === "near" && !state.loc) { state.sort = "near"; locate(); return; }
+      state.sort = v; buzz(8); flip(() => render(false)); return;
     case "goarea": state.area = v; state.view = "prices"; state.showAll = false; mapFitKey = ""; rolled.clear(); buzz(10); render(true); window.scrollTo(0, 0); return;
     case "gocity": state.city = v; store.set("city", v); state.area = null; state.chain = null; state.view = "prices"; mapFitKey = ""; rolled.clear(); buzz(10); render(true); window.scrollTo(0, 0); return;
     case "trange": state.trendRange = v; anim = true; break;
@@ -1283,6 +1311,69 @@ document.addEventListener("visibilitychange", () => {
     if (ageMin > 15) load(true, false); else render(false);
   }
 });
+
+/* ---------- motion layer: orbs, parallax, 3D tilt, scroll reveal, FLIP ---------- */
+const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
+(function motion() {
+  const orbs = document.createElement("div");
+  orbs.className = "orbs"; orbs.setAttribute("aria-hidden", "true");
+  orbs.innerHTML = "<i></i><i></i><i></i>";
+  document.body.appendChild(orbs);
+  const root = document.documentElement.style;
+  let raf = 0, sy = 0, px = 0, py = 0;
+  const apply = () => { raf = 0; root.setProperty("--sy", sy); root.setProperty("--px", px.toFixed(3)); root.setProperty("--py", py.toFixed(3)); };
+  const queue = () => { if (!raf) raf = requestAnimationFrame(apply); };
+  addEventListener("scroll", () => { sy = scrollY; queue(); }, { passive: true });
+  addEventListener("pointermove", (e) => { px = (e.clientX / innerWidth - .5) * 2; py = (e.clientY / innerHeight - .5) * 2; queue(); }, { passive: true });
+  // 3D tilt on the hero card and favourites, with a spring release (the CSS transition does the springing)
+  const tiltSel = ".pylon,.fav,.save-card";
+  const tilt = (e) => {
+    const el = e.target.closest && e.target.closest(tiltSel);
+    if (!el || e.pointerType === "touch" && e.type === "pointermove" && !el.matches(":active")) return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+    el.style.setProperty("--ry", (x * 10).toFixed(2) + "deg");
+    el.style.setProperty("--rx", (-y * 8).toFixed(2) + "deg");
+    el.classList.add("tilting");
+  };
+  const untilt = (e) => {
+    const el = e.target.closest && e.target.closest(tiltSel);
+    if (!el) return;
+    el.classList.remove("tilting");
+    el.style.removeProperty("--ry"); el.style.removeProperty("--rx");
+  };
+  if (!REDUCE_MOTION) {
+    app.addEventListener("pointermove", tilt, { passive: true });
+    app.addEventListener("pointerdown", tilt, { passive: true });
+    app.addEventListener("pointerout", untilt, { passive: true });
+    app.addEventListener("pointerup", untilt, { passive: true });
+    app.addEventListener("pointercancel", untilt, { passive: true });
+  }
+})();
+// Sections start paused (.rv) and play once scrolled into view
+let rvObs = null;
+function observeReveals() {
+  if (rvObs) rvObs.disconnect();
+  const els = app.querySelectorAll(".rv");
+  if (!("IntersectionObserver" in window)) { els.forEach((e) => e.classList.add("in")); return; }
+  rvObs = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); rvObs.unobserve(e.target); } }), { rootMargin: "0px 0px -10% 0px" });
+  els.forEach((e) => rvObs.observe(e));
+}
+/* FLIP: remember where list rows are, run fn (re-render), then animate rows from their old spot */
+function flip(fn) {
+  const first = new Map();
+  app.querySelectorAll(".list .row[data-id]").forEach((el) => first.set(el.dataset.id, el.getBoundingClientRect().top));
+  fn();
+  if (REDUCE_MOTION) return;
+  app.querySelectorAll(".list .row[data-id]").forEach((el, i) => {
+    const was = first.get(el.dataset.id);
+    el.style.animation = "none";
+    if (was == null) { el.animate([{ opacity: 0, transform: "translateY(18px)" }, { opacity: 1, transform: "none" }], { duration: 450, delay: i * 25, easing: "cubic-bezier(.16,1,.3,1)", fill: "backwards" }); return; }
+    const dy = was - el.getBoundingClientRect().top;
+    if (Math.abs(dy) < 1) return;
+    el.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }], { duration: 650, easing: "cubic-bezier(.34,1.4,.5,1)" });
+  });
+}
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (reloadOnUpdate) location.reload(); });

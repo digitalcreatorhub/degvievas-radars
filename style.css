@@ -718,3 +718,52 @@ input[type="range"] { width: 100%; accent-color: var(--amber); height: 32px; }
 }
 
 :root[data-theme="light"] .pylon { background: radial-gradient(460px 220px at 88% -40px, rgba(255, 176, 46, .22), transparent 70%), radial-gradient(360px 200px at -10% 110%, rgba(139, 123, 255, .26), transparent 70%), rgba(10, 11, 20, .95); box-shadow: var(--rim), 0 30px 60px -30px rgba(255, 140, 40, .5); }
+
+/* ---- Motion layer: spring easing, floating glass orbs, 3D tilt, scroll reveal, view transitions ---- */
+:root { --spring: cubic-bezier(.34, 1.56, .5, 1); }
+@supports (transition-timing-function: linear(0, 1)) {
+  :root { --spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.3%, 0.987 64.7%, 1.002 72.3%, 1.006 79%, 1 100%); }
+}
+.bnav .ind { transition: transform .75s var(--spring); }
+button:active:not(:disabled), .btn:active { transition-duration: .08s; }
+.fuel, .chip, .tile, .icon-btn, .btn { transition-timing-function: var(--spring); transition-duration: .35s; }
+
+.orbs { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.orbs i {
+  position: absolute; display: block; border-radius: 50%;
+  background: radial-gradient(circle at 30% 26%, rgba(255, 255, 255, .3), rgba(255, 255, 255, .05) 42%, transparent 70%);
+  box-shadow: inset -16px -20px 44px rgba(139, 123, 255, .22), inset 6px 8px 22px rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .08);
+  translate: calc(var(--px, 0) * var(--fx) * 1px) calc(var(--sy, 0) * var(--fy) * -1px + var(--py, 0) * var(--fx) * .6px);
+  animation: floaty 16s ease-in-out infinite alternate;
+}
+.orbs i:nth-child(1) { width: 230px; height: 230px; left: -90px; top: 16vh; --fx: 16; --fy: .1; }
+.orbs i:nth-child(2) { width: 140px; height: 140px; right: -36px; top: 50vh; --fx: -24; --fy: .22; animation-delay: -5s; box-shadow: inset -12px -16px 36px rgba(0, 229, 195, .24), inset 6px 8px 18px rgba(255, 255, 255, .08); }
+.orbs i:nth-child(3) { width: 96px; height: 96px; left: 58%; top: 80vh; --fx: 34; --fy: .38; animation-delay: -9s; box-shadow: inset -10px -12px 28px rgba(255, 176, 46, .3), inset 4px 6px 14px rgba(255, 255, 255, .1); }
+:root[data-theme="light"] .orbs i { background: radial-gradient(circle at 30% 26%, rgba(255, 255, 255, .95), rgba(255, 255, 255, .25) 45%, transparent 70%); border-color: rgba(255, 255, 255, .7); }
+@keyframes floaty { from { transform: translateY(-14px) rotate(0deg); } to { transform: translateY(18px) rotate(8deg); } }
+
+.pylon, .save-card { transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .9s var(--spring); will-change: transform; }
+.pylon.tilting, .save-card.tilting { transition: transform .12s ease-out; }
+.fav { transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+
+/* Sections wait (paused at their first frame) until they scroll into view */
+.rv:not(.in) *, .rv:not(.in) *::before, .rv:not(.in) *::after { animation-play-state: paused !important; }
+
+/* Page transitions between tabs */
+.bnav { view-transition-name: bnav; }
+.top { view-transition-name: top; }
+::view-transition-group(bnav), ::view-transition-group(top) { animation-duration: .5s; animation-timing-function: var(--spring); }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .5s; animation-timing-function: cubic-bezier(.16, 1, .3, 1); }
+html[data-vt="fwd"]::view-transition-old(root) { animation-name: vtOutL; }
+html[data-vt="fwd"]::view-transition-new(root) { animation-name: vtInR; }
+html[data-vt="back"]::view-transition-old(root) { animation-name: vtOutR; }
+html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
+@keyframes vtOutL { to { opacity: 0; transform: translateX(-48px) scale(.97); filter: blur(8px); } }
+@keyframes vtInR { from { opacity: 0; transform: translateX(48px) scale(.97); filter: blur(8px); } }
+@keyframes vtOutR { to { opacity: 0; transform: translateX(48px) scale(.97); filter: blur(8px); } }
+@keyframes vtInL { from { opacity: 0; transform: translateX(-48px) scale(.97); filter: blur(8px); } }
+
+.sort { margin: 8px 0 4px; }
+.retry { margin-top: 14px; width: 100%; }
+@media (prefers-reduced-motion: reduce) { .orbs { display: none; } }

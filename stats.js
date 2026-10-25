@@ -251,11 +251,11 @@ function renderStats() {
     <h2 style="margin-top:20px">${L("Аналитика", "Insights")}</h2>
     <p class="sub">${esc(state.city === "all" ? t("allCountry") : (state.data.cities.find((c) => c.slug === state.city) || { name: "" }).name)}, ${t("fuels")[state.fuel]}${state.area ? ", " + esc((state.data.areas.find((a) => a.slug === state.area) || { name: "" }).name) : ""}</p>
     ${insightCards(pool, all)}
-    ${swarmSection(pool, all)}
-    ${scatterSection(all)}
-    ${areaSection(pool)}
-    ${compositionSection(pool)}
-    ${savingsSection(pool)}
-    ${trendSection()}
-    ${oilSection()}`;
+    <div class="rv">${swarmSection(pool, all)}</div>
+    <div class="rv">${scatterSection(all)}</div>
+    <div class="rv">${areaSection(pool)}</div>
+    <div class="rv">${compositionSection(pool)}</div>
+    <div class="rv">${savingsSection(pool)}</div>
+    <div class="rv">${trendSection()}</div>
+    <div class="rv">${oilSection()}</div>`;
 }
