@@ -1409,7 +1409,7 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
     DROP('style="--w:38px;right:18%;top:70vh;--fx:5;--fy:.05;--b:2px;--r:-5deg;--d:12s"', "far") +
     DROP('style="--w:30px;left:28%;top:52vh;--fx:4;--fy:.04;--b:2.4px;--r:9deg;--d:13s"', "far");
   document.body.appendChild(scene);
-  const root = document.documentElement.style;
+  const root = scene.style;  // set on the scene only, so scrolling does not restyle the whole page
   let raf = 0, sy = 0, px = 0, py = 0;
   const apply = () => { raf = 0; root.setProperty("--sy", sy); root.setProperty("--px", px.toFixed(3)); root.setProperty("--py", py.toFixed(3)); };
   const queue = () => { if (!raf) raf = requestAnimationFrame(apply); };
