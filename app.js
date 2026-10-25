@@ -4,6 +4,7 @@
 
 const I18N = {
   ru: {
+    heat: "Тепловая карта цен",
     title: "Degvielas Radars",
     refresh: "Обновить",
     theme: "Сменить тему",
@@ -77,6 +78,7 @@ const I18N = {
     day: "дн.",
   },
   en: {
+    heat: "Price heat map",
     title: "Degvielas Radars",
     refresh: "Refresh",
     theme: "Switch theme",
@@ -152,7 +154,7 @@ const I18N = {
 };
 
 Object.assign(I18N.ru, {
-  navPrices: "Цены", navMap: "Карта", navJournal: "Журнал",
+  navPrices: "Цены", navMap: "Карта", navStats: "Анализ", navJournal: "Журнал",
   settings: "Настройки", language: "Язык", themeLabel: "Тема", dark: "Тёмная", light: "Светлая",
   haptics: "Вибрация при нажатиях", close: "Закрыть",
   discH: "Мои скидки", discHelp: "Скидка по карте лояльности, цент на литр. Цены в списке и на карте станут уже со скидкой.",
@@ -180,7 +182,7 @@ Object.assign(I18N.ru, {
   resetLoc: "Сбросить место", refreshed: "Обновлено, данные от", locWait: "Уточняю…",
 });
 Object.assign(I18N.en, {
-  navPrices: "Prices", navMap: "Map", navJournal: "Log",
+  navPrices: "Prices", navMap: "Map", navStats: "Insights", navJournal: "Log",
   settings: "Settings", language: "Language", themeLabel: "Theme", dark: "Dark", light: "Light",
   haptics: "Vibrate on taps", close: "Close",
   discH: "My discounts", discHelp: "Loyalty-card discount in cents per litre. Prices in the list and on the map will already include it.",
@@ -253,6 +255,9 @@ const state = {
   installed: false,
   data: null, history: null, oil: null,
   mapMode: store.get("mapmode", "all"),
+  fpm: store.get("fpm", 4),
+  trendRange: "30",
+  heat: false,
   baseline: store.get("snap", null),
 };
 let installPrompt = null;
@@ -299,6 +304,8 @@ const ICON = {
   prices: svg('<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/>', 22),
   map: svg('<path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>', 22),
   journal: svg('<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22.5z"/><path d="M4 4.5v18"/><path d="M9 7h7M9 11h7"/>', 22),
+  stats: svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', 22),
+  heat: svg('<path d="M12 2c3 4 6 6 6 11a6 6 0 0 1-12 0c0-2 1-3 2-4 .3 2 1 3 2 3 0-4-1-6 2-10z"/>'),
   trash: svg('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>', 18),
   radar: `<svg class="radar" width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
     <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5"/>
@@ -565,6 +572,14 @@ function fuelTabs() {
   return `<div class="fuels" role="group">${fuels.map((f) => `<button class="fuel" data-act="fuel" data-v="${f}" aria-pressed="${state.fuel === f}">${t("fuels")[f]}</button>`).join("")}</div>`;
 }
 
+function tileSpark(f) {
+  const h = state.history;
+  if (!h || !window.Charts) return "";
+  const vals = Object.keys(h.days).sort().slice(-14).map((d) => h.days[d]?.[state.city]?.[f]?.min).filter((v) => v != null);
+  if (vals.length < 2) return "";
+  return `<span class="ts">${Charts.sparkline(vals, vals[vals.length - 1] > vals[0])}</span>`;
+}
+
 function renderBoard() {
   const fuels = presentFuels();
   const tiles = BOARD_FUELS.map((f, i) => {
@@ -578,6 +593,7 @@ function renderBoard() {
       <span class="tf">${t("fuels")[f]}</span>
       <span class="tp">${rollPrice(r.price, "tile" + f, "bp")}</span>
       <span class="tc"><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</span>
+      ${tileSpark(f)}
       <span class="td ${dcls}" ${ch ? `title="${ch.src === "visit" ? t("sinceVisit") : t("vsYest")}"` : ""}>${ch ? `${ch.delta < 0 ? "▼" : "▲"} ${(Math.abs(ch.delta) * 100).toFixed(1)}` : "&nbsp;"}</span>
     </button>`;
   }).join("");
@@ -836,6 +852,7 @@ function renderMapView() {
         <p class="addr">${esc(st.address)}</p>
         <div class="mp-price"><span class="pp">${rollPrice(cell.p - disc, "pop", "bp")}</span><span class="u">€/L</span>
           <span class="tag ${exact ? "good" : "warn"}">${kindLabel(row)}</span></div>
+        ${(() => { const pc = exact ? cheaperThanPct({ exact, price: cell.p - disc }) : null; return pc == null ? "" : Charts.meter(pc, state.lang === "ru" ? `Дешевле, чем у ${pc}% станций` : `Cheaper than ${pc}% of stations`); })()}
         <div class="actions">
           <a class="btn" href="${linkWaze(st)}" target="_blank" rel="noopener">${t("waze")}</a>
           <a class="btn ghost" href="${linkGmaps(st)}" target="_blank" rel="noopener">${t("gmaps")}</a>
@@ -859,6 +876,7 @@ function renderMapView() {
       <button data-act="mfit" aria-label="${t("mapFit")}">${ICON.fit}</button>
       <button data-act="mme" class="${state.loc ? "on" : ""}" aria-label="${t("mapMe")}">${ICON.near}</button>
     </div>
+    <div class="mm-ctl left"><button data-act="mheat" class="${state.heat ? "on" : ""}" aria-label="${t("heat")}" title="${t("heat")}" aria-pressed="${state.heat}">${ICON.heat}</button></div>
     ${rows.length ? "" : `<div class="mm-empty">${t("mapEmpty")}</div>`}
     ${pop}
   </div>
@@ -891,8 +909,8 @@ function attachMap() {
     return {
       id: r.st.id, lat: r.st.lat, lng: r.st.lng, prio: r.exact ? i : 1000 + i, force: sel || (i === 0 && r.exact),
       cls: `${sel ? "sel " : ""}${i === 0 && r.exact ? "best " : ""}${r.exact ? "" : "est"}`.trim(),
-      html: `<span class="pin" style="--h:${hue};--c:${esc(chain.color)}"><i class="pdot"></i><b>${fmtPrice(r.price)}</b></span>`,
-      dotHtml: `<span class="pin mini" style="--h:${hue};--c:${esc(chain.color)}"></span>`,
+      html: state.heat && !sel ? `<span class="blob" style="--h:${hue}"></span>` : `<span class="pin" style="--h:${hue};--c:${esc(chain.color)}"><i class="pdot"></i><b>${fmtPrice(r.price)}</b></span>`,
+      dotHtml: state.heat && !sel ? `<span class="blob" style="--h:${hue}"></span>` : `<span class="pin mini" style="--h:${hue};--c:${esc(chain.color)}"></span>`,
     };
   });
   if (state.loc) list.push({ id: "__me", lat: state.loc.lat, lng: state.loc.lng, prio: -1, force: true, noPick: true, cls: "me", html: '<span class="me-dot"></span>', dotHtml: '<span class="me-dot"></span>' });
@@ -911,6 +929,24 @@ function pickStation(id) {
 }
 
 /* ---------- journal view ---------- */
+function journalCharts(s) {
+  if (!window.Charts || state.journal.length < 2) return "";
+  const ru = state.lang === "ru";
+  const byMonth = new Map();
+  for (const e of state.journal) { const m = e.t.slice(0, 7); byMonth.set(m, (byMonth.get(m) || 0) + e.l * e.ppl); }
+  const months = [...byMonth.keys()].sort().slice(-6);
+  const MN = ru ? ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const items = months.map((m) => ({ label: MN[+m.slice(5) - 1], v: byMonth.get(m), tip: `${MN[+m.slice(5) - 1]} ${m.slice(0, 4)}: ${byMonth.get(m).toFixed(2)} €` }));
+  let out = `<h3>${ru ? "Траты по месяцам" : "Spending by month"}</h3>${Charts.columns({ items, fmt: (v) => v.toFixed(0) })}`;
+  const cons = s.newest.filter((e) => s.cons[e.id] != null).reverse();
+  if (cons.length >= 2) {
+    out += `<h3>${ru ? "Расход топлива" : "Consumption"}</h3>${Charts.line({ id: "cons", labels: cons.map((e) => e.t.slice(8, 10) + "." + e.t.slice(5, 7)), fmt: (v) => v.toFixed(1),
+      hint: ru ? "Проведите по графику, чтобы увидеть расход по заправкам." : "Drag across the chart to read each fill-up.",
+      series: [{ key: "c", name: ru ? "л/100 км" : "l/100 km", color: "#00e5c3", vals: cons.map((e) => s.cons[e.id]), area: true }] })}`;
+  }
+  return out;
+}
+
 function renderJournal() {
   const s = journalStats();
   const f = state.jf;
@@ -931,6 +967,7 @@ function renderJournal() {
   return `<section class="jview">
     <h2 style="margin-top:20px">${t("jH")}</h2><p class="sub">${t("jSub")}</p>
     ${cards}${per100}
+    ${journalCharts(s)}
     ${s.avgCons != null ? `<button class="chip" data-act="jusecons">${t("jUse")} (${s.avgCons.toFixed(1)})</button>` : ""}
     <form class="jform" data-act="jform" novalidate>
       <div class="field"><label for="jd">${t("jDate")}</label><input id="jd" type="date" data-act="jf" data-v="date" value="${esc(f.date)}"></div>
@@ -973,7 +1010,7 @@ function renderSheet() {
 
 let navShown = 0;
 function renderNav() {
-  const items = [["prices", ICON.prices, t("navPrices")], ["map", ICON.map, t("navMap")], ["journal", ICON.journal, t("navJournal")]];
+  const items = [["prices", ICON.prices, t("navPrices")], ["map", ICON.map, t("navMap")], ["stats", ICON.stats, t("navStats")], ["journal", ICON.journal, t("navJournal")]];
   const idx = items.findIndex((i) => i[0] === state.view);
   return `<nav class="bnav" style="--idx:${navShown}" data-idx="${idx}" aria-label="Menu"><span class="ind"></span>${items.map(([v, ic, label]) =>
     `<button data-act="nav" data-v="${v}" ${state.view === v ? 'aria-current="page"' : ""}>${ic}<span>${label}</span></button>`).join("")}</nav>`;
@@ -1002,12 +1039,14 @@ function render(anim = true) {
   if (!state.data) body = state.loading ? renderSkeleton() : `<div class="empty"><b>${t("noDataH")}</b>${t("noDataT")}</div>`;
   else if (!state.data.stations.length) body = `<div class="empty"><b>${t("noDataH")}</b>${t("noDataT")}</div>`;
   else if (state.view === "map") body = renderMapView();
+  else if (state.view === "stats") body = renderStats();
   else if (state.view === "journal") body = renderJournal();
   else body = renderPrices();
   app.innerHTML = `<div class="wrap v-${state.view} ${anim ? "enter" : ""}">${renderHeader()}${body}
     <footer class="foot"><p>${t("source")}</p></footer></div>${renderNav()}${state.sheet ? renderSheet() : ""}`;
   document.body.classList.toggle("noscroll", state.sheet);
   if (state.data && state.view === "map") attachMap();
+  if (window.Charts) Charts.bindScrub(app, CHART_FMT);
   settleRolls();
   const navEl = app.querySelector(".bnav");
   if (navEl) { const to = +navEl.dataset.idx; requestAnimationFrame(() => requestAnimationFrame(() => navEl.style.setProperty("--idx", to))); navShown = to; }
@@ -1141,6 +1180,8 @@ function csvText() {
 
 /* ---------- events ---------- */
 app.addEventListener("click", (e) => {
+  const tipEl = e.target.closest("[data-tip]");
+  if (tipEl && tipEl.dataset.tip) { toast(tipEl.dataset.tip); buzz(8); return; }
   const el = e.target.closest("[data-act]");
   if (!el || el.tagName === "SELECT" || el.tagName === "INPUT" || el.tagName === "FORM") return;
   if (el.dataset.act !== "row" && el.dataset.act !== "share" && e.target.closest("a")) return;
@@ -1154,6 +1195,10 @@ app.addEventListener("click", (e) => {
     case "settheme": state.theme = v; store.set("theme", v); applyTheme(); render(false); return;
     case "refresh": refreshNow(); return;
     case "fuel": state.fuel = v; store.set("fuel", v); state.showAll = false; state.open = null; buzz(8); break;
+    case "goarea": state.area = v; state.view = "prices"; state.showAll = false; mapFitKey = ""; rolled.clear(); buzz(10); render(true); window.scrollTo(0, 0); return;
+    case "gocity": state.city = v; store.set("city", v); state.area = null; state.chain = null; state.view = "prices"; mapFitKey = ""; rolled.clear(); buzz(10); render(true); window.scrollTo(0, 0); return;
+    case "trange": state.trendRange = v; anim = true; break;
+    case "mheat": state.heat = !state.heat; buzz(8); anim = false; break;
     case "mapmode": state.mapMode = v; store.set("mapmode", v); anim = false; break;
     case "mode": state.mode = v; store.set("mode", v); break;
     case "area": state.area = v || null; state.showAll = false; mapFitKey = ""; break;
@@ -1215,9 +1260,19 @@ app.addEventListener("input", (e) => {
     store.set("disc", state.disc);
     return;
   }
+  if (act === "fpm" && n > 0) { state.fpm = n; store.set("fpm", n); updateSavings(); return; }
   if (act === "liters" && n > 0) { state.liters = n; store.set("liters", n); render(false); }
   if (act === "cons" && n > 0) { state.consumption = n; store.set("consumption", n); render(false); }
 });
+function spotlight(e) {
+  const g = e.target.closest && e.target.closest(".tile,.fav,.ins,.sum,.oil>div,.jstats>div,.save-card,.cta,.jform");
+  if (!g) return;
+  const r = g.getBoundingClientRect();
+  g.style.setProperty("--mx", e.clientX - r.left + "px");
+  g.style.setProperty("--my", e.clientY - r.top + "px");
+}
+app.addEventListener("pointermove", spotlight, { passive: true });
+app.addEventListener("pointerdown", spotlight, { passive: true });
 app.addEventListener("submit", (e) => { e.preventDefault(); addFill(); });
 window.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.sheet) { state.sheet = false; render(false); } });
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; if (state.data) render(false); });
