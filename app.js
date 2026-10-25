@@ -1537,7 +1537,7 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
       <linearGradient id="fog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--fog)" stop-opacity="0"/><stop offset=".6" stop-color="var(--fog)" stop-opacity=".9"/><stop offset="1" stop-color="var(--fog)" stop-opacity="1"/></linearGradient>
       <filter id="fb" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation=".9"/></filter><radialGradient id="flare"><stop offset="0" stop-color="#ffb35c" stop-opacity=".7"/><stop offset=".15" stop-color="#ff8a3a" stop-opacity=".35"/><stop offset="1" stop-color="#ff6a2a" stop-opacity="0"/></radialGradient></defs>
             ${layer("l-far", far)}${fog(176, 60, .75)}
-      ${layer("l-mid", mid)}<g class="rl l-mid flareg"><g transform="translate(-180 0)"><circle class="flare-glow" cx="740.5" cy="66" r="120" fill="url(#flare)"/>
+      ${layer("l-mid", mid)}<g class="rl l-far flareg"><g transform="translate(-180 0) translate(740.5 232) scale(.78) translate(-740.5 -232)"><circle class="flare-glow" cx="740.5" cy="66" r="120" fill="url(#flare)"/>
         <circle class="fa" cx="740.5" cy="84" r=".5" fill="none"/><g class="flarestack"><rect x="739.6" y="86" width="1.8" height="146"/><rect x="738" y="86" width="5" height="2"/></g>
         <g class="smoke"><circle class="sm s1" cx="747" cy="24" r="7"/><circle class="sm s2" cx="750" cy="18" r="9"/><circle class="sm s3" cx="745" cy="26" r="6"/></g>
         <g class="flm"><g class="fl body"><path d="M733.5 82C731.5 75 735 68 733.6 60C732.6 54 736.6 50 735.4 42C740 47 741 39 745.6 31C745.4 41 752 45 750 53C754.4 51 752.6 61 752.4 67C754.4 73 749.4 78 747.4 82Z" fill="#ff4d12" opacity=".92" filter="url(#fb)"/></g>
@@ -1578,7 +1578,7 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
     cv.style.width = CW + "px"; cv.style.height = CH + "px";
     const ctx = cv.getContext("2d");
     if (!ctx) return;
-    scene.insertBefore(cv, scene.querySelector(".sparks"));
+    scene.insertBefore(cv, svgEl);   // behind the skyline, so the haze and the dark plant stand in front of it
     scene.classList.add("live-flame");
     const stops = [[0, [255, 240, 190]], [.1, [255, 214, 120]], [.34, [255, 150, 40]], [.64, [232, 70, 14]], [1, [100, 22, 8]]];
     const colour = (t) => {
@@ -1608,7 +1608,7 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
       show = r.left > -120 && r.left < innerWidth + 120 && r.top > -200 && r.top < innerHeight + 60;
       cv.style.display = show ? "" : "none";
       if (!show) return;
-      const k = Math.max(.6, svgEl.getBoundingClientRect().width / 1000);
+      const k = Math.max(.5, svgEl.getBoundingClientRect().width / 1000) * .78;
       cv.style.transform = `translate(${(r.left + r.width / 2 - BX).toFixed(1)}px,${(r.top + r.height / 2 - BY + 2).toFixed(1)}px)`;
       const t = now / 1000, light = document.documentElement.dataset.theme === "light";
       nextBurst -= dt; if (nextBurst <= 0) { boost = 1; nextBurst = .5 + rnd() * 1.4; }
@@ -1636,7 +1636,7 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
       }
       ctx.globalCompositeOperation = light ? "source-over" : "lighter";
       // hot base glow
-      ctx.globalAlpha = (.3 + .12 * Math.sin(t * 9) + .1 * Math.sin(t * 23 + 1)) * (1 + boost * .3);
+      ctx.globalAlpha = (.17 + .07 * Math.sin(t * 9) + .06 * Math.sin(t * 23 + 1)) * (1 + boost * .3);
       const bs = 20 * k * (1 + boost * .25);
       ctx.drawImage(sprites[2], BX - bs, BY - bs * .9, bs * 2, bs * 2);
       for (let i = parts.length - 1; i >= 0; i--) {
@@ -1647,7 +1647,7 @@ const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
         p.x += (p.vx + (46 + Math.sin(t * 3.1 + p.ph) * 22) * u * k + Math.sin(t * 9 + p.ph * 3) * 34 * u * k) * dt;
         p.y += p.vy * dt;
         const s = p.size * (1.15 - u * .9) * 2.4;
-        ctx.globalAlpha = Math.pow(1 - u, 1.2) * (light ? .4 : .26);
+        ctx.globalAlpha = Math.pow(1 - u, 1.2) * (light ? .3 : .15);
         ctx.drawImage(sprites[Math.min(N - 1, Math.floor(u * (N - 1)))], p.x - s / 2, p.y - s / 2, s, s);
       }
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
