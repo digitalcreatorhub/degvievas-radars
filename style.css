@@ -916,3 +916,23 @@ html[data-vt="back"]::view-transition-new(root) { animation-name: vtInL; }
 
 /* the left strip is equally bright on every row, estimates included */
 .row.heat, .row.est { box-shadow: inset 4px 0 0 hsl(var(--h) 85% 58%), inset 14px 0 14px -10px hsl(var(--h) 85% 55% / .55); }
+
+/* fuel badge: tells you which fuel the prices below are for, so you do not lose it while scrolling */
+.fbadge {
+  --fc: #4da3ff;
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  min-width: 28px; height: 20px; padding: 0 6px; border-radius: 7px;
+  font: 700 11px/1 var(--num); letter-spacing: .04em; white-space: nowrap;
+  color: var(--fc);
+  background: color-mix(in srgb, var(--fc) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fc) 52%, transparent);
+}
+.fbadge[data-f="95"] { --fc: #4da3ff; }
+.fbadge[data-f="98"] { --fc: #b183ff; }
+.fbadge[data-f="diesel"] { --fc: #f2b72f; }
+.fbadge[data-f="dplus"] { --fc: #ff9a5c; }
+.fbadge[data-f="lpg"] { --fc: #2dd4bf; }
+.fbadge[data-f="cng"] { --fc: #8bd450; }
+:root[data-theme="light"] .fbadge { color: color-mix(in srgb, var(--fc) 62%, #000); }
+.rp .pline { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+h2 .fbadge { height: 22px; font-size: 12px; margin-left: 10px; vertical-align: middle; }
