@@ -1187,7 +1187,19 @@ async function load(bust = false, anim = true, keepBusy = false) {
 }
 
 /* ---------- actions ---------- */
-let geoWatch = null, geoTimer = 0;
+let geoWatch = null, geoTimer = 0, lastFixAt = 0;
+// Automatic refresh of the position (every app open / return from background), without the "Location" button.
+// Runs quietly: no toast, no error message. Skips when the permission is blocked or the position is still fresh.
+function autoLocate(force = false) {
+  if (!navigator.geolocation || state.locating) return;
+  if (!force && state.loc && Date.now() - lastFixAt < 30000) return;
+  const used = store.get("usedNear", false);
+  const go = () => locate(true);
+  if (!navigator.permissions?.query) { if (used) go(); return; }
+  navigator.permissions.query({ name: "geolocation" })
+    .then((r) => { if (r.state === "granted" || (r.state === "prompt" && used)) go(); })
+    .catch(() => { if (used) go(); });
+}
 function locate(silent = false) {
   if (!navigator.geolocation) { if (!silent) toast(t("locFail")); return; }
   if (state.locating) return;
@@ -1209,6 +1221,7 @@ function locate(silent = false) {
     (pos) => {
       const first = !got;
       got = true;
+      lastFixAt = Date.now();
       state.loc = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
       state.road = true;
       if (first && !silent) buzz(12);
@@ -1413,11 +1426,14 @@ window.addEventListener("keydown", (e) => { if (e.key === "Escape" && (state.she
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; if (state.data) render(false); });
 window.addEventListener("appinstalled", () => { state.installed = true; installPrompt = null; render(false); });
 document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") autoLocate();
   if (document.visibilityState === "visible" && state.data && !state.sheet) {
     const ageMin = (Date.now() - Date.parse(state.data.generated_at)) / 60000;
     if (ageMin > 15) load(true, false); else render(false);
   }
 });
+// restored from the back/forward cache or resumed after the phone woke up
+window.addEventListener("pageshow", (e) => { if (e.persisted) autoLocate(true); });
 
 /* ---------- motion layer: orbs, parallax, 3D tilt, scroll reveal, FLIP ---------- */
 const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1725,5 +1741,5 @@ if ("serviceWorker" in navigator) {
 }
 applyTheme();
 load();
-// if the person has used "Near me" before and the permission is still granted, locate quietly so the nearest station is marked
-if (store.get("usedNear", false) && navigator.permissions?.query) navigator.permissions.query({ name: "geolocation" }).then((r) => { if (r.state === "granted") locate(true); }).catch(() => {});
+// every app open: refresh the position quietly so the nearest/cheapest-nearby station is marked without pressing "Location"
+autoLocate(true);
