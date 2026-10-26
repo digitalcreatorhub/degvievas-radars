@@ -153,6 +153,81 @@ const I18N = {
     later: "Later",
     day: "d",
   },
+  lv: {
+    heat: "Cenu siltumkarte",
+    sortPrice: "Cena", sortNear: "Tuvumā", sortFresh: "Svaigākās", retry: "Mēģināt vēlreiz",
+    title: "Degvielas Radars",
+    refresh: "Atjaunot",
+    theme: "Mainīt tēmu",
+    updated: "Dati no",
+    ago: "pirms",
+    staleData: "Dati ir novecojuši, atjaunošana neizdevās",
+    city: "Pilsēta",
+    allArea: "Visa pilsēta",
+    exact: "Precīzas cenas",
+    all: "Visas stacijas",
+    allCountry: "Visa Latvija",
+    search: "Meklēt pēc adreses vai tīkla",
+    fewExact: "Šim degvielas veidam ir maz precīzu cenu.",
+    showAllStations: "Rādīt visas stacijas",
+    allPrices: "Visas cenas",
+    noMatch: "Nekas nav atrasts",
+    cheapest: "Lētākā",
+    network: "tīkla vienotā cena",
+    station: "šīs stacijas cena",
+    min: "tīkla minimums, šeit var būt augstāka",
+    minShort: "aplēse: tīkla minimums",
+    user: "no autovadītājiem",
+    userOld: "no autovadītājiem, sen nav atjaunota",
+    maybeCheaper: "Iespējams, lētāk",
+    show: "rādīt",
+    waze: "Waze",
+    gmaps: "Google Maps",
+    navTo: "Navigācija",
+    tank: "Pilna bāka",
+    liters: "Litri",
+    consumption: "Patēriņš, l/100 km",
+    road: "Ieskaitīt ceļu līdz stacijai",
+    roadHelp: "Attālums taisnā līnijā × 1,3, turp un atpakaļ.",
+    nearMe: "Man tuvumā",
+    locating: "Nosaku atrašanās vietu…",
+    locFail: "Neizdevās noteikt atrašanās vietu. Atļaujiet piekļuvi atrašanās vietai pārlūkprogrammā.",
+    tankCost: "Bāka",
+    saveAvg: "Lētāk par vidējo cenu:",
+    saveMax: "lētāk par dārgāko:",
+    stationsH: "Stacijas",
+    withPrice: "ar cenu",
+    showAll: "Rādīt visas",
+    showLess: "Sakļaut",
+    chainsH: "Tīkli",
+    chainsSub: "Labākā cena katrā tīklā",
+    trendH: "Dinamika",
+    trendSub: "Zemākā un vidējā cena pilsētā",
+    trendWait: "Grafiks parādīsies, kad būs uzkrāti vairāku dienu dati.",
+    min_s: "zemākā",
+    avg_s: "vidējā",
+    oilH: "Jēlnafta",
+    barrel: "par barelu",
+    vsYest: "Salīdzinot ar vakardienu",
+    same: "bez izmaiņām",
+    cents: "¢",
+    emptyH: "Nav piemērotu cenu",
+    emptyT: "Šim degvielas veidam šeit nav precīzu cenu. Rādiet visas stacijas vai izvēlieties citu pilsētu.",
+    noDataH: "Dati vēl nav savākti",
+    noDataT: "Pirmā cenu vākšana sākas automātiski un parasti aizņem pāris minūtes. Vēlāk atsvaidziniet lapu.",
+    km: "km",
+    today: "šodien",
+    yesterday: "vakar",
+    changed: "mainīta",
+    fuels: { "95": "95", "98": "98", diesel: "Dīzelis", dplus: "Dīzelis+", lpg: "Autogāze (LPG)", cng: "Dabasgāze (CNG)" },
+    source: "Cenu avots: letadegviela.lv. Tīklu cenas tiek publicētas visam tīklam, tāpēc konkrētā stacijā tās var atšķirties. Pirms uzpildes pārbaudiet cenu uz stacijas tablo.",
+    install: "Instalēt",
+    installText: "Atvērsies kā parasta lietotne tieši no telefona sākuma ekrāna",
+    installAndroid: "Atveriet pārlūkprogrammas izvēlni (trīs punkti) un izvēlieties “Instalēt lietotni”",
+    installIos: "Nospiediet “Kopīgot”, pēc tam “Pievienot sākuma ekrānam”",
+    later: "Vēlāk",
+    day: "d.",
+  },
 };
 
 Object.assign(I18N.ru, {
@@ -219,6 +294,38 @@ Object.assign(I18N.en, {
   loading: "Loading prices…",
   resetLoc: "Clear location", refreshed: "Updated, data from", locWait: "Refining…",
 });
+Object.assign(I18N.lv, {
+  navPrices: "Cenas", navMap: "Karte", navStats: "Analīze", navJournal: "Žurnāls",
+  settings: "Iestatījumi", language: "Valoda", themeLabel: "Tēma", dark: "Tumša", light: "Gaiša",
+  haptics: "Vibrācija pieskārienos", close: "Aizvērt",
+  discH: "Manas atlaides", discHelp: "Lojalitātes kartes atlaide centos par litru. Cenas sarakstā un kartē jau būs ar atlaidi.",
+  discApply: "Ņemt vērā atlaides", discChip: "Ar atlaidēm", withDisc: "ar atlaidi",
+  preview: "Testa versija",
+  boardH: "Šobrīd lētākā", otherFuels: "Citas degvielas",
+  sinceVisit: "kopš pēdējā apmeklējuma", low30: "30 dienu minimums", newPrice: "cena mainījusies",
+  favs: "Manas stacijas", favOnly: "Izlase", addFav: "Pievienot izlasei", removeFav: "Noņemt no izlases",
+  favAdded: "Pievienots izlasei", favRemoved: "Noņemts no izlases", favNone: "Izlasē nav nevienas stacijas ar šo degvielu.",
+  radius: "Rādiuss", anyDist: "Jebkurš", noGeo: "Ieslēdziet “Man tuvumā”, lai meklētu pēc rādiusa.",
+  share: "Kopīgot", copied: "Nokopēts",
+  mapFit: "Rādīt visas", mapZoomIn: "Pietuvināt", mapZoomOut: "Attālināt", mapMe: "Kur es esmu",
+  mapEmpty: "Kartē nav staciju ar precīzu cenu. Pārslēdzieties uz “Visas stacijas”.",
+  cmpH: "Staciju salīdzināšana", cmpBtn: "Salīdzināt", cmpAdd: "Pievienot salīdzinājumam", cmpRemove: "Noņemt no salīdzinājuma", cmpMax: "Var salīdzināt līdz 3 stacijām", cmpClear: "Notīrīt", cmpPrice: "Cena", cmpVsBest: "Pret labāko", cmpBest: "Labākā cena", cmpTank: "Bāka", cmpDist: "Attālums", cmpUpd: "Cena mainīta", cmpRel: "Ticamība", cmpOther: "Citas degvielas", cmpNeed: "Izvēlieties vismaz 2 stacijas.",
+  relHigh: "Apstiprināta tīklā", relMid: "No autovadītājiem", relLow: "Tīkla minimuma aplēse", relStale: "Iespējams, novecojusi", vsAvgLbl: "pret saraksta vidējo",
+  nearestTag: "Lēti tuvumā",
+  mvMap: "Karte", mvBoth: "Kopā", mvList: "Saraksts", onMap: "Kartē",
+  mapCheapest: "Lētākā", mapHint: "Cenas krāsa: zaļš ir lētāk, sarkans dārgāk. Raustīta zila līnija: aplēse pēc tīkla minimuma.",
+  jH: "Uzpildes žurnāls", jSub: "Ieraksti tiek glabāti tikai šajā telefonā.",
+  jDate: "Datums", jLiters: "Litri", jPrice: "Cena, €/l", jOdo: "Nobraukums, km", jFull: "Pilna bāka",
+  jAdd: "Saglabāt uzpildi", jBest: "Labākā cena tagad", jEmpty: "Ierakstu vēl nav. Pievienojiet uzpildi ar nobraukumu, un lietotne aprēķinās reālo patēriņu.",
+  jCons: "Patēriņš", jAvgPrice: "Vidējā cena", jMonth: "Šomēnes", jPer100: "100 km izmaksā",
+  jUse: "Izmantot kalkulatorā", jCsv: "Kopēt kā CSV", jDel: "Dzēst", jTotal: "Kopā",
+  jBad: "Norādiet litrus un cenu", jSaved: "Saglabāts", jUsed: "Patēriņš pārnests uz kalkulatoru",
+  consUnit: "l/100 km", moUnit: "€",
+  exportHint: "Tabula nokopēta, ielīmējiet to Excel vai Piezīmēs",
+  sharePrefix: "Lētākā",
+  loading: "Ielādēju cenas…",
+  resetLoc: "Atiestatīt vietu", refreshed: "Atjaunots, dati no", locWait: "Precizēju…",
+});
 
 const FUEL_ORDER = ["95", "98", "diesel", "dplus", "lpg", "cng"];
 const BOARD_FUELS = ["95", "98", "diesel"];
@@ -238,7 +345,7 @@ const store = {
 const state = {
   view: "prices",
   theme: store.get("theme", "dark"),
-  lang: store.get("lang", (navigator.language || "ru").startsWith("ru") ? "ru" : "en"),
+  lang: (() => { const n = String(navigator.language || "ru").toLowerCase(), v = store.get("lang", n.startsWith("ru") ? "ru" : n.startsWith("lv") ? "lv" : "en"); return ["ru", "en", "lv"].includes(v) ? v : "en"; })(),
   city: store.get("city", "riga"),
   area: null,
   chain: null,
@@ -280,6 +387,9 @@ const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 const INSTALL_SNOOZE_MS = 3 * 864e5;
 
 const t = (k) => I18N[state.lang][k];
+// pick a string by language: pickLang(russian, english, latvian)
+const pickLang = (ru, en, lv) => (state.lang === "ru" ? ru : state.lang === "lv" ? lv : en);
+const timeLocale = () => (state.lang === "lv" ? "lv-LV" : "ru-RU");
 function applyTheme() {
   document.documentElement.dataset.theme = state.theme;
   const meta = document.querySelector('meta[name="theme-color"]');
@@ -348,9 +458,9 @@ function ageHours(cell) {
 }
 function relTime(iso) {
   const mins = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
-  if (mins < 60) return `${mins} ${state.lang === "ru" ? "мин" : "min"}`;
+  if (mins < 60) return `${mins} ${pickLang("мин", "min", "min")}`;
   const h = Math.round(mins / 60);
-  return h < 48 ? `${h} ${state.lang === "ru" ? "ч" : "h"}` : `${Math.round(h / 24)} ${t("day")}`;
+  return h < 48 ? `${h} ${pickLang("ч", "h", "st.")}` : `${Math.round(h / 24)} ${t("day")}`;
 }
 function dayWord(cell) {
   if (!cell.ch) return "";
@@ -563,8 +673,8 @@ function renderHeader() {
   let meta = "";
   if (d) {
     const ageMin = Math.round((Date.now() - Date.parse(d.generated_at)) / 60000);
-    const hhmm = new Intl.DateTimeFormat("ru-RU", { timeZone: "Europe/Riga", hour: "2-digit", minute: "2-digit" }).format(new Date(d.generated_at));
-    meta = `${t("updated")} ${hhmm}, ${relTime(d.generated_at)} ${t("ago")}`;
+    const hhmm = new Intl.DateTimeFormat(timeLocale(), { timeZone: "Europe/Riga", hour: "2-digit", minute: "2-digit" }).format(new Date(d.generated_at));
+    meta = `${t("updated")} ${hhmm}, ${state.lang === "lv" ? `${t("ago")} ${relTime(d.generated_at)}` : `${relTime(d.generated_at)} ${t("ago")}`}`;
     if (ageMin > STALE_AFTER_MIN) meta += ` <span class="stale">${t("staleData")}</span>`;
   }
   const cities = d ? d.cities : [];
@@ -904,7 +1014,7 @@ function renderMapView() {
         <p class="addr">${esc(st.address)}</p>
         <div class="mp-price"><span class="pp">${rollPrice(cell.p - disc, "pop", "bp")}</span><span class="u">€/L</span>
           <span class="tag ${exact ? "good" : "warn"}">${kindLabel(row)}</span></div>
-        ${(() => { const pc = exact ? cheaperThanPct({ exact, price: cell.p - disc }) : null; return pc == null ? "" : Charts.meter(pc, state.lang === "ru" ? `Дешевле, чем у ${pc}% станций` : `Cheaper than ${pc}% of stations`); })()}
+        ${(() => { const pc = exact ? cheaperThanPct({ exact, price: cell.p - disc }) : null; return pc == null ? "" : Charts.meter(pc, pickLang(`Дешевле, чем у ${pc}% станций`, `Cheaper than ${pc}% of stations`, `Lētāk nekā ${pc}% staciju`)); })()}
         ${(() => {
           const ex = rows.filter((r) => r.exact).map((r) => r.price);
           const avg = ex.length ? ex.reduce((a, b) => a + b, 0) / ex.length : null;
@@ -995,18 +1105,17 @@ function pickStation(id) {
 /* ---------- journal view ---------- */
 function journalCharts(s) {
   if (!window.Charts || state.journal.length < 2) return "";
-  const ru = state.lang === "ru";
   const byMonth = new Map();
   for (const e of state.journal) { const m = e.t.slice(0, 7); byMonth.set(m, (byMonth.get(m) || 0) + e.l * e.ppl); }
   const months = [...byMonth.keys()].sort().slice(-6);
-  const MN = ru ? ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const MN = pickLang(["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"], ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], ["jan", "feb", "mar", "apr", "mai", "jūn", "jūl", "aug", "sep", "okt", "nov", "dec"]);
   const items = months.map((m) => ({ label: MN[+m.slice(5) - 1], v: byMonth.get(m), tip: `${MN[+m.slice(5) - 1]} ${m.slice(0, 4)}: ${byMonth.get(m).toFixed(2)} €` }));
-  let out = `<h3>${ru ? "Траты по месяцам" : "Spending by month"}</h3>${Charts.columns({ items, fmt: (v) => v.toFixed(0) })}`;
+  let out = `<h3>${pickLang("Траты по месяцам", "Spending by month", "Izdevumi pa mēnešiem")}</h3>${Charts.columns({ items, fmt: (v) => v.toFixed(0) })}`;
   const cons = s.newest.filter((e) => s.cons[e.id] != null).reverse();
   if (cons.length >= 2) {
-    out += `<h3>${ru ? "Расход топлива" : "Consumption"}</h3>${Charts.line({ id: "cons", labels: cons.map((e) => e.t.slice(8, 10) + "." + e.t.slice(5, 7)), fmt: (v) => v.toFixed(1),
-      hint: ru ? "Проведите по графику, чтобы увидеть расход по заправкам." : "Drag across the chart to read each fill-up.",
-      series: [{ key: "c", name: ru ? "л/100 км" : "l/100 km", color: "#ffc247", vals: cons.map((e) => s.cons[e.id]), area: true }] })}`;
+    out += `<h3>${pickLang("Расход топлива", "Consumption", "Degvielas patēriņš")}</h3>${Charts.line({ id: "cons", labels: cons.map((e) => e.t.slice(8, 10) + "." + e.t.slice(5, 7)), fmt: (v) => v.toFixed(1),
+      hint: pickLang("Проведите по графику, чтобы увидеть расход по заправкам.", "Drag across the chart to read each fill-up.", "Velciet pār grafiku, lai redzētu patēriņu katrā uzpildē."),
+      series: [{ key: "c", name: pickLang("л/100 км", "l/100 km", "l/100 km"), color: "#ffc247", vals: cons.map((e) => s.cons[e.id]), area: true }] })}`;
   }
   return out;
 }
@@ -1024,7 +1133,7 @@ function renderJournal() {
   const per100 = s.avgCons != null && s.avgPrice != null ? `<p class="sub">${t("jPer100")}: <b>${((s.avgCons * s.avgPrice)).toFixed(2)} €</b></p>` : "";
   const items = s.newest.map((e, i) => `<li class="jrow" style="--i:${Math.min(i, 10)}">
       <div><b>${esc(e.t.slice(8, 10) + "." + e.t.slice(5, 7) + "." + e.t.slice(0, 4))}</b>
-        <span>${e.l.toFixed(2)} ${state.lang === "ru" ? "л" : "l"} × ${e.ppl.toFixed(3)} €${e.odo != null ? `, ${Math.round(e.odo)} ${t("km")}` : ""}${e.full ? "" : ", " + (state.lang === "ru" ? "не полный" : "partial")}</span></div>
+        <span>${e.l.toFixed(2)} ${state.lang === "ru" ? "л" : "l"} × ${e.ppl.toFixed(3)} €${e.odo != null ? `, ${Math.round(e.odo)} ${t("km")}` : ""}${e.full ? "" : ", " + pickLang("не полный", "partial", "nepilna")}</span></div>
       <div class="jr"><b>${(e.l * e.ppl).toFixed(2)} €</b>${s.cons[e.id] ? `<span class="cons">${s.cons[e.id].toFixed(1)} ${t("consUnit")}</span>` : ""}</div>
       <button class="icon-btn sm" data-act="jdel" data-v="${e.id}" aria-label="${t("jDel")}">${ICON.trash}</button>
     </li>`).join("");
@@ -1060,7 +1169,8 @@ function renderSheet() {
     <div class="sh-head"><h2>${t("settings")}</h2><button class="icon-btn sm" data-act="closesheet" aria-label="${t("close")}">${ICON.close}</button></div>
     <div class="set-row"><span>${t("language")}</span><div class="seg inline" role="group">
       <button data-act="setlang" data-v="ru" aria-pressed="${state.lang === "ru"}">RU</button>
-      <button data-act="setlang" data-v="en" aria-pressed="${state.lang === "en"}">EN</button></div></div>
+      <button data-act="setlang" data-v="en" aria-pressed="${state.lang === "en"}">EN</button>
+      <button data-act="setlang" data-v="lv" aria-pressed="${state.lang === "lv"}">LV</button></div></div>
     <div class="set-row"><span>${t("themeLabel")}</span><div class="seg inline" role="group">
       <button data-act="settheme" data-v="dark" aria-pressed="${state.theme === "dark"}">${t("dark")}</button>
       <button data-act="settheme" data-v="light" aria-pressed="${state.theme === "light"}">${t("light")}</button></div></div>
@@ -1244,7 +1354,7 @@ async function refreshNow() {
   const left = 800 - (Date.now() - t0);
   if (left > 0) await new Promise((r) => setTimeout(r, left));
   if (state.data) {
-    const hhmm = new Intl.DateTimeFormat("ru-RU", { timeZone: "Europe/Riga", hour: "2-digit", minute: "2-digit" }).format(new Date(state.data.generated_at));
+    const hhmm = new Intl.DateTimeFormat(timeLocale(), { timeZone: "Europe/Riga", hour: "2-digit", minute: "2-digit" }).format(new Date(state.data.generated_at));
     toast(`${t("refreshed")} ${hhmm}`);
   }
 }
