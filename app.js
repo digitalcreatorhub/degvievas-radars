@@ -328,6 +328,9 @@ Object.assign(I18N.lv, {
 });
 
 const FUEL_ORDER = ["95", "98", "diesel", "dplus", "lpg", "cng"];
+// short, language-neutral pump labels for the small coloured fuel badge (colours live in style.css, keyed by data-f)
+const FUEL_SHORT = { "95": "95", "98": "98", diesel: "D", dplus: "D+", lpg: "LPG", cng: "CNG" };
+const fuelBadge = (f) => `<span class="fbadge" data-f="${f}" title="${esc(t("fuels")[f])}" aria-label="${esc(t("fuels")[f])}">${FUEL_SHORT[f] || esc(f)}</span>`;
 const BOARD_FUELS = ["95", "98", "diesel"];
 const EXACT_KINDS = new Set(["station", "network", "user"]);
 const USER_MAX_AGE_H = 72;
@@ -889,14 +892,14 @@ function renderList(rows, onMap = false) {
       <div class="who"><b><i class="dot" style="background:${esc(chain.color)}"></i>${esc(chain.name)}</b>
         <span>${esc(r.st.address)}</span>${note}
         <span class="note">${r.st.id === nearId ? `<b class="neartag">◎ ${t("nearestTag")}</b> ` : ""}${dist}${dayWord(r.cell)}</span></div>
-      <div class="rp"><b class="hp">${pylonStatic(r.price)}</b>${r.disc > 0 ? `<s class="was">${fmtPrice(r.base)}</s>` : ""}
+      <div class="rp"><div class="pline">${fuelBadge(state.fuel)}<b class="hp">${pylonStatic(r.price)}</b></div>${r.disc > 0 ? `<s class="was">${fmtPrice(r.base)}</s>` : ""}
         <div class="ra">${heartBtn(r.st.id)}${cmpBtn(r.st.id)}${onMap ? `<button class="ra-btn" data-act="onmap" data-v="${esc(r.st.id)}">${ICON.map}${t("onMap")}</button>` : ""}<a href="${linkWaze(r.st)}" target="_blank" rel="noopener">${ICON.nav}${t("navTo")}</a></div>
         <button class="more-prices" data-act="row" data-v="${esc(r.st.id)}" aria-expanded="${state.open === r.st.id}">${t("allPrices")}</button></div>
       ${state.open === r.st.id ? renderDetail(r.st) : ""}
     </li>`;
   }).join("");
   return `
-  <h2>${t("stationsH")}</h2><p class="sub">${rows.length} ${t("withPrice")}</p>
+  <h2>${t("stationsH")}${fuelBadge(state.fuel)}</h2><p class="sub">${rows.length} ${t("withPrice")}</p>
   ${renderSort()}
   <ol class="list" style="padding:0">${items}</ol>
   ${rows.length > 8 ? `<button class="more" data-act="more">${state.showAll ? t("showLess") : `${t("showAll")} ${rows.length}`}</button>` : ""}`;
