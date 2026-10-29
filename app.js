@@ -363,6 +363,7 @@ const state = {
   disc: store.get("disc", {}),
   useDisc: store.get("useDisc", true),
   haptics: store.get("haptics", true),
+  morning: (() => { const m = store.get("morning", null); return m && Number.isInteger(m.hour) && Array.isArray(m.fuels) && m.fuels.length ? m : null; })(),
   journal: store.get("journal", []),
   jf: { date: "", l: "", ppl: "", odo: "", full: true },
   sheet: false,
@@ -1158,6 +1159,106 @@ function renderJournal() {
   </section>`;
 }
 
+/* ---------- morning push report (subscription lives in the shared push Worker, app = fuel) ---------- */
+Object.assign(I18N.ru, {
+  morningH: "Утренний отчёт", morningHelp: "Каждое утро приходит уведомление: где в Риге сейчас самое дешёвое топливо и как изменилась цена за сутки.",
+  morningOn: "Присылать утром", morningHour: "Во сколько", morningFuels: "Какое топливо",
+  morningOnToast: "Утренний отчёт включён", morningOffToast: "Утренний отчёт выключен",
+  morningDenied: "Уведомления запрещены в настройках браузера", morningFail: "Не удалось включить уведомления, попробуйте позже",
+  morningIos: "На iPhone сначала добавьте приложение на экран «Домой»", morningNoSupport: "Этот браузер не поддерживает уведомления",
+});
+Object.assign(I18N.en, {
+  morningH: "Morning report", morningHelp: "Every morning a notification tells you where in Riga fuel is cheapest right now and how the price moved over the day.",
+  morningOn: "Send in the morning", morningHour: "Time", morningFuels: "Fuel",
+  morningOnToast: "Morning report is on", morningOffToast: "Morning report is off",
+  morningDenied: "Notifications are blocked in the browser settings", morningFail: "Could not turn notifications on, please try again later",
+  morningIos: "On iPhone, first add the app to the Home Screen", morningNoSupport: "This browser does not support notifications",
+});
+Object.assign(I18N.lv, {
+  morningH: "Rīta ziņojums", morningHelp: "Katru rītu paziņojums par lētāko degvielu Rīgā šobrīd un cenas izmaiņām.",
+  morningOn: "Sūtīt no rīta", morningHour: "Laiks", morningFuels: "Degviela",
+  morningOnToast: "Rīta ziņojums ieslēgts", morningOffToast: "Rīta ziņojums izslēgts",
+  morningDenied: "Paziņojumi ir bloķēti pārlūka iestatījumos", morningFail: "Neizdevās ieslēgt paziņojumus, mēģiniet vēlāk",
+  morningIos: "iPhone: vispirms pievienojiet lietotni sākuma ekrānam", morningNoSupport: "Šis pārlūks neatbalsta paziņojumus",
+});
+const PUSH = { api: null };
+const MORNING_HOURS = [7, 8, 9];
+const MORNING_FUELS = ["95", "98", "diesel", "lpg"];
+const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const isIosTab = () => isIos() && !isStandalone();
+async function loadPushConfig() {
+  try {
+    const res = await fetch("push-config.json", { cache: "no-store" });
+    if (!res.ok) return;
+    const j = await res.json();
+    if (j && typeof j.api === "string" && /^https:\/\/[^\s]+$/.test(j.api)) PUSH.api = j.api.replace(/\/+$/, "");
+  } catch { /* without the config pushes are simply off */ }
+}
+const b64urlToBytes = (b64) => {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+};
+const bytesToB64url = (buf) => btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+async function pushPost(path, body) {
+  const res = await fetch(PUSH.api + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+}
+// Brings the server in line with the phone: subscribed + morning settings, or unsubscribed when the report is off.
+// Best effort. Returns 'on' | 'off' (not configured / unsupported) | 'none' (switched off) | 'denied' | 'error'.
+async function morningSync() {
+  try {
+    if (!PUSH.api || !pushSupported()) return "off";
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!state.morning) {
+      if (sub) { try { await pushPost("/unsubscribe", { endpoint: sub.endpoint }); } catch { /* the server forgets it after 60 days */ } await sub.unsubscribe(); }
+      return "none";
+    }
+    if (Notification.permission !== "granted") return Notification.permission === "denied" ? "denied" : "off";
+    const vres = await fetch(PUSH.api + "/vapid");
+    if (!vres.ok) return "error";
+    const key = (await vres.json()).key;
+    if (!key) return "error";
+    // the server keys changed: the old subscription would not work
+    if (sub && sub.options && sub.options.applicationServerKey && bytesToB64url(sub.options.applicationServerKey) !== key) { await sub.unsubscribe(); sub = null; }
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlToBytes(key) });
+    const j = sub.toJSON();
+    await pushPost("/sync", { app: "fuel", sub: { endpoint: j.endpoint, keys: j.keys }, lang: state.lang, morning: { hour: state.morning.hour, fuels: state.morning.fuels } });
+    return "on";
+  } catch { return "error"; }
+}
+async function setMorning(on) {
+  if (!on) { state.morning = null; store.set("morning", null); render(false); await morningSync(); toast(t("morningOffToast")); return; }
+  if (isIosTab()) { toast(t("morningIos")); render(false); return; }
+  if (!pushSupported()) { toast(t("morningNoSupport")); render(false); return; }
+  try { if (Notification.permission === "default") await Notification.requestPermission(); } catch { /* handled below */ }
+  if (Notification.permission !== "granted") { toast(t("morningDenied")); render(false); return; }
+  state.morning = { hour: 8, fuels: [MORNING_FUELS.includes(state.fuel) ? state.fuel : "95"] };
+  store.set("morning", state.morning);
+  render(false);
+  const res = await morningSync();
+  if (res === "on") toast(t("morningOnToast"));
+  else { state.morning = null; store.set("morning", null); render(false); toast(res === "denied" ? t("morningDenied") : t("morningFail")); }
+}
+function morningChange(patch) {
+  if (!state.morning) return;
+  const next = Object.assign({}, state.morning, patch);
+  if (!next.fuels.length) return; // at least one fuel stays selected
+  state.morning = next; store.set("morning", next); buzz(8); render(false); morningSync();
+}
+function renderMorning() {
+  if (!PUSH.api) return "";
+  const m = state.morning;
+  const note = isIosTab() ? t("morningIos") : !pushSupported() ? t("morningNoSupport") : "";
+  return `<h3>${t("morningH")}</h3><p class="sub">${t("morningHelp")}</p>
+    <label class="set-row"><span>${t("morningOn")}</span><input type="checkbox" class="sw" data-act="morning" ${m ? "checked" : ""}></label>
+    ${note && !m ? `<p class="sub">${note}</p>` : ""}
+    ${m ? `<div class="set-row"><span>${t("morningHour")}</span><div class="seg inline" role="group">${MORNING_HOURS.map((h) => `<button data-act="morninghour" data-v="${h}" aria-pressed="${m.hour === h}">${String(h).padStart(2, "0")}:00</button>`).join("")}</div></div>
+    <div class="set-row"><span>${t("morningFuels")}</span></div>
+    <div class="seg slim" role="group">${MORNING_FUELS.map((f) => `<button data-act="morningfuel" data-v="${f}" aria-pressed="${m.fuels.includes(f)}">${t("fuels")[f]}</button>`).join("")}</div>` : ""}`;
+}
+
 /* ---------- settings sheet ---------- */
 let sheetFresh = false;
 function renderSheet() {
@@ -1178,6 +1279,7 @@ function renderSheet() {
       <button data-act="settheme" data-v="dark" aria-pressed="${state.theme === "dark"}">${t("dark")}</button>
       <button data-act="settheme" data-v="light" aria-pressed="${state.theme === "light"}">${t("light")}</button></div></div>
     <label class="set-row"><span>${t("haptics")}</span><input type="checkbox" class="sw" data-act="haptics" ${state.haptics ? "checked" : ""}></label>
+    ${renderMorning()}
     <h3>${t("discH")}</h3><p class="sub">${t("discHelp")}</p>
     <label class="set-row"><span>${t("discApply")}</span><input type="checkbox" class="sw" data-act="usedisc" ${state.useDisc ? "checked" : ""}></label>
     <div class="disc-list">${chains.map(([slug, c]) => `<label class="disc"><span><i class="dot" style="background:${esc(c.color)}"></i>${esc(c.name)}</span>
@@ -1441,7 +1543,9 @@ app.addEventListener("click", (e) => {
     case "cmpclear": state.cmp = []; state.cmpOpen = false; buzz(6); render(false); return;
     case "sheet": state.sheet = true; sheetFresh = true; buzz(6); render(false); return;
     case "closesheet": state.sheet = false; render(false); return;
-    case "setlang": state.lang = v; store.set("lang", v); render(false); return;
+    case "setlang": state.lang = v; store.set("lang", v); render(false); if (state.morning) morningSync(); return;
+    case "morninghour": morningChange({ hour: +v }); return;
+    case "morningfuel": { const cur = state.morning ? state.morning.fuels : []; morningChange({ fuels: cur.includes(v) ? cur.filter((x) => x !== v) : MORNING_FUELS.filter((x) => x === v || cur.includes(x)) }); return; }
     case "settheme": state.theme = v; store.set("theme", v); applyTheme(); render(false); return;
     case "refresh": refreshNow(); return;
     case "fuel": state.fuel = v; store.set("fuel", v); state.showAll = false; state.open = null; buzz(8); break;
@@ -1509,6 +1613,7 @@ app.addEventListener("change", (e) => {
   if (act === "jfull") state.jf.full = el.checked;
   if (act === "haptics") { state.haptics = el.checked; store.set("haptics", el.checked); if (el.checked) buzz(15); }
   if (act === "usedisc") { state.useDisc = el.checked; store.set("useDisc", el.checked); }
+  if (act === "morning") setMorning(el.checked);
 });
 app.addEventListener("input", (e) => {
   const el = e.target;
@@ -1854,5 +1959,6 @@ if ("serviceWorker" in navigator) {
 }
 applyTheme();
 load();
+loadPushConfig().then(() => { if (state.sheet) render(false); if (state.morning) morningSync(); });
 // every app open: refresh the position quietly so the nearest/cheapest-nearby station is marked without pressing "Location"
 autoLocate(true);
