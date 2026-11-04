@@ -877,7 +877,8 @@ function renderList(rows, onMap = false) {
   if (state.loc) {
     const reach = state.radius || NEAR_KM;
     const pool = rows.filter((r) => r.exact && r.dist != null && r.dist <= reach);
-    const pick = (pool.length ? pool : rows.filter((r) => r.dist != null)).reduce((a, b) => (!a || b.price < a.price - 0.0004 || (Math.abs(b.price - a.price) <= 0.0004 && b.dist < a.dist) ? b : a), null);
+    // no exact price within reach: fall back to estimates, but still only within reach (never the cheapest in the whole country)
+    const pick = (pool.length ? pool : rows.filter((r) => r.dist != null && r.dist <= reach)).reduce((a, b) => (!a || b.price < a.price - 0.0004 || (Math.abs(b.price - a.price) <= 0.0004 && b.dist < a.dist) ? b : a), null);
     if (pick) nearId = pick.st.id;
   }
   let shown = rows.slice(0, limit).map((r, i) => [r, i]);
