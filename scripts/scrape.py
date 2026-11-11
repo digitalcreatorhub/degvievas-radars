@@ -13,6 +13,7 @@ Only the standard library plus beautifulsoup4 is used.
 """
 from __future__ import annotations
 
+import http.client
 import json
 import re
 import sys
@@ -72,7 +73,9 @@ def fetch(url: str, retries: int = 3, timeout: int = 30) -> str:
             if "Just a moment" in body[:2000] or "cf-challenge" in body[:4000]:
                 raise RuntimeError("Cloudflare challenge page returned")
             return body
-        except (urllib.error.URLError, TimeoutError, RuntimeError) as exc:
+        # OSError covers URLError, timeouts and dropped connections;
+        # HTTPException covers IncompleteRead when the server cuts a response short.
+        except (OSError, http.client.HTTPException, RuntimeError) as exc:
             last = exc
             if attempt < retries:
                 time.sleep(3 * attempt)
